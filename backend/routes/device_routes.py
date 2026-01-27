@@ -913,18 +913,15 @@ def update_location():
                 logging.info(f"✅ Accepting location update: New location is NOT in KL area (real GPS): {new_lat}, {new_lng}")
                 # Continue to update - don't reject
             # If location is in KL area (within 20km) and device doesn't have a previous GPS location,
-            # this is definitely wrong IP geolocation - reject it
+            # ACCEPT it for the first location (so device can show on map), but warn user
             elif distance_from_kl < 20000:
                 if not device.last_lat or not device.last_lng:
-                    # No previous location - reject KL IP geolocation
-                    logging.warning(f"Rejecting KL area location update (wrong IP geolocation): {new_lat}, {new_lng}")
-                    # Commit status update before returning (status was already updated above)
-                    db.session.commit()
-                    return jsonify({
-                        'message': 'Location update rejected - KL area IP geolocation is inaccurate',
-                        'error': 'Please enable Windows Location Services for accurate GPS tracking',
-                        'device': device.to_dict()
-                    }), 200  # Return 200 but don't update location
+                    # No previous location - ACCEPT first location even if KL area (so device shows on map)
+                    # But log a warning that GPS should be enabled for accuracy
+                    logging.warning(f"⚠️ Accepting first location in KL area (may be IP geolocation): {new_lat}, {new_lng}")
+                    logging.warning(f"   For accurate tracking, enable Windows Location Services: Settings > Privacy & Security > Location > Turn ON")
+                    # Continue to update - don't reject (this allows device to show on map)
+                else:
                 else:
                     # Check if previous location was also in KL
                     prev_dist_from_kl = calculate_distance_meters(kl_area_lat, kl_area_lng, device.last_lat, device.last_lng)
