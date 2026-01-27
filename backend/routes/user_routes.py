@@ -533,6 +533,16 @@ The Smart Anti-Theft System team
 
 @user_bp.route('/login', methods=['POST', 'OPTIONS'])
 def login():
+    # Handle OPTIONS preflight request explicitly for Vercel
+    if request.method == 'OPTIONS':
+        response = jsonify({})
+        response.headers.add('Access-Control-Allow-Origin', request.headers.get('Origin', 'https://antitheft-frontend-2.vercel.app'))
+        response.headers.add('Access-Control-Allow-Methods', 'POST, OPTIONS')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With')
+        response.headers.add('Access-Control-Allow-Credentials', 'true')
+        response.headers.add('Access-Control-Max-Age', '3600')
+        return response, 200
+    
     try:
         data = request.get_json()
         

@@ -166,6 +166,20 @@ if not is_serverless:
 else:
     print("[INFO] Skipping scheduler initialization (serverless environment)")
 
+@app.before_request
+def handle_preflight():
+    """Handle OPTIONS preflight requests for CORS on Vercel"""
+    if request.method == 'OPTIONS':
+        response = jsonify({})
+        origin = request.headers.get('Origin')
+        if origin in allowed_origins_list:
+            response.headers.add('Access-Control-Allow-Origin', origin)
+        response.headers.add('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With')
+        response.headers.add('Access-Control-Allow-Credentials', 'true')
+        response.headers.add('Access-Control-Max-Age', '3600')
+        return response, 200
+
 @app.route('/', methods=['GET'])
 def root():
     """Root endpoint - simple response without database access"""
