@@ -99,37 +99,15 @@ allowed_origins_list = [
     'http://127.0.0.1:5173'
 ]
 
-# Configure CORS - use resources pattern to match all routes
+# Configure CORS - apply to all routes to avoid duplicate headers
+# Flask-CORS will handle all CORS headers automatically
 CORS(app, 
-     resources={r"/api/*": {
-         "origins": allowed_origins_list,
-         "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
-         "allow_headers": ["Content-Type", "Authorization", "X-Requested-With"],
-         "supports_credentials": True,
-         "max_age": 3600
-     }},
+     origins=allowed_origins_list,
+     methods=['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+     allow_headers=['Content-Type', 'Authorization', 'X-Requested-With'],
+     supports_credentials=True,
+     max_age=3600,
      automatic_options=True)  # Automatically handle OPTIONS requests
-
-# Add CORS headers to all responses to ensure they're always present (even for errors)
-@app.after_request
-def after_request(response):
-    """Add CORS headers to all responses"""
-    origin = request.headers.get("Origin")
-    
-    # Set appropriate origin header - allow frontend origin or any origin for now
-    if origin and origin in allowed_origins_list:
-        response.headers.add("Access-Control-Allow-Origin", origin)
-    elif origin:
-        # Temporarily allow any origin to fix CORS issues (can be restricted later)
-        response.headers.add("Access-Control-Allow-Origin", origin)
-    else:
-        response.headers.add("Access-Control-Allow-Origin", "*")
-    
-    response.headers.add("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With")
-    response.headers.add("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS, PATCH")
-    response.headers.add("Access-Control-Allow-Credentials", "true")
-    response.headers.add("Access-Control-Max-Age", "3600")
-    return response
 jwt = JWTManager(app)
 db.init_app(app)
 

@@ -12,14 +12,7 @@
   "routes": [
     {
       "src": "/(.*)",
-      "dest": "/api/index.py",
-      "headers": {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS, PATCH",
-        "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Requested-With",
-        "Access-Control-Allow-Credentials": "true",
-        "Access-Control-Max-Age": "3600"
-      }
+      "dest": "/api/index.py"
     }
   ],
   "env": {
