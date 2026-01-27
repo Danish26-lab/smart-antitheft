@@ -922,20 +922,16 @@ def update_location():
                     logging.warning(f"   For accurate tracking, enable Windows Location Services: Settings > Privacy & Security > Location > Turn ON")
                     # Continue to update - don't reject (this allows device to show on map)
                 else:
-                else:
-                    # Check if previous location was also in KL
+                    # Device has previous location - check if it's a significant jump
                     prev_dist_from_kl = calculate_distance_meters(kl_area_lat, kl_area_lng, device.last_lat, device.last_lng)
                     if prev_dist_from_kl > 20000:  # Previous location was NOT in KL
-                        # Device was elsewhere, now showing KL - this is wrong!
-                        logging.warning(f"Rejecting KL location update - device was at {device.last_lat}, {device.last_lng} (not KL)")
-                        # Commit status update before returning (status was already updated above)
-                        db.session.commit()
-                        return jsonify({
-                            'message': 'Location update rejected - KL area IP geolocation is inaccurate',
-                            'error': 'Device location jumped to KL area (ISP location), rejecting update',
-                            'device': device.to_dict()
-                        }), 200  # Return 200 but don't update location
-                    # else: both locations are in KL, might be correct (device actually in KL)
+                        # Device was elsewhere, now showing KL - might be wrong, but accept it anyway
+                        # (device might have actually moved, or IP geolocation changed)
+                        # For anti-theft tracking, it's better to show approximate location than nothing
+                        logging.warning(f"⚠️ Location jumped to KL area from {device.last_lat}, {device.last_lng} (may be IP geolocation)")
+                        logging.warning(f"   Accepting update anyway - approximate location is better than no location for tracking")
+                        # Continue to update - don't reject (allows tracking even with approximate location)
+                    # else: both locations are in KL, might be correct (device actually in KL) - accept it
         
         # Validate location accuracy - reject if location changed too dramatically
         # This prevents IP geolocation drift from causing false alarms
