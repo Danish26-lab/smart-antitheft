@@ -1579,12 +1579,55 @@ class DeviceAgent:
                                     logging.error(f"Failed to report status: {response.status_code}")
                                     return False
             
-            # If location is in KL area, warn but still use it (better than no location)
+            # CRITICAL: If location is in KL area and we're using approximate (IP geolocation), REJECT it
+            # KL-area IP geolocation is WRONG for devices in Melaka - accuracy off by 100+ km!
             kl_area_lat = 3.14
             kl_area_lng = 101.69
             distance_from_kl = self._calculate_distance(kl_area_lat, kl_area_lng, location['lat'], location['lng'])
             
             if distance_from_kl < 20000:  # Within 20km of KL
+                # If this is approximate location (IP geolocation), reject it - it's wrong!
+                if is_approximate_location:
+                    logging.error("❌❌ REJECTING KL-area IP geolocation - device is NOT in KL!")
+                    logging.error(f"   Received KL coordinates: {location['lat']}, {location['lng']}")
+                    logging.error("   This is ISP location (KL), NOT your actual location in Melaka!")
+                    logging.error("   Accuracy is off by 100+ km - GPS is REQUIRED!")
+                    logging.error("")
+                    logging.error("   🔴 CRITICAL: Enable Windows Location Services NOW:")
+                    logging.error("      1. Press Win+I to open Settings")
+                    logging.error("      2. Go to: Privacy & Security > Location")
+                    logging.error("      3. Turn ON 'Location services'")
+                    logging.error("      4. Turn ON 'Allow desktop apps to access your location'")
+                    logging.error("      5. Restart the device agent")
+                    logging.error("")
+                    logging.error("   Will NOT report wrong location - GPS is required for accuracy!")
+                    
+                    # Try one more aggressive GPS attempt
+                    if platform.system().lower() == 'windows':
+                        logging.info("🔄 Making one final aggressive GPS attempt (180s timeout)...")
+                        final_gps = self._force_gps_location()
+                        if final_gps:
+                            kl_check = self._calculate_distance(3.14, 101.69, final_gps['lat'], final_gps['lng'])
+                            if kl_check >= 20000:  # GPS location is NOT in KL - accurate!
+                                logging.info(f"✅✅ SUCCESS! Got accurate GPS location: {final_gps}")
+                                location = final_gps
+                                is_approximate_location = False
+                                self.last_known_location = final_gps
+                                self.gps_failed_count = 0
+                            else:
+                                logging.error("❌ GPS also shows KL area - this might be correct if device is actually in KL")
+                                logging.error("   But since you're in Melaka, GPS might not be working properly")
+                                logging.error("   Please check Windows Location Services settings!")
+                                # Still reject it - don't report wrong location
+                                return False  # Don't report wrong location
+                        else:
+                            logging.error("❌ GPS failed completely - cannot get accurate location")
+                            logging.error("   Will NOT report wrong KL IP geolocation!")
+                            return False  # Don't report wrong location
+                    else:
+                        return False  # Don't report wrong location
+                
+                # If location is from GPS (not approximate), check if we have better cached GPS
                 # Check if we have a last known GPS location that's NOT in KL
                 if self.last_known_location:
                     last_known_dist_kl = self._calculate_distance(
@@ -1598,7 +1641,7 @@ class DeviceAgent:
                         logging.warning(f"   Using last known GPS location: {self.last_known_location}")
                         location = self.last_known_location
                     # else: both are in KL, might be correct or both wrong - use current location
-                # else: No cached GPS - use IP geolocation (already warned in get_location)
+                # else: No cached GPS - if it's GPS (not IP), use it (might be correct if device is actually in KL)
             
             # At this point, we have a valid location (either GPS or validated IP)
             # Check if device has moved significantly (100m threshold)
@@ -2948,32 +2991,47 @@ class DeviceAgent:
         # CRITICAL: Force GPS location update on startup to clear any wrong cached location
         logging.info("🔄 Forcing GPS location update on startup to ensure accurate location...")
         if platform.system().lower() == 'windows':
+            # Check Windows Location Services status first
+            self._check_location_services()
+            
             startup_gps = self._force_gps_location()
             if startup_gps:
-                logging.info(f"✅✅ Got GPS location on startup: {startup_gps}")
-                self.last_known_location = startup_gps
-                # Immediately report this GPS location to clear any wrong location in database
-                try:
-                    payload = {
-                        "device_id": self.device_id,
-                        "user": self.user_email,
-                        "location": startup_gps,
-                        "status": self.status,
-                        "force_update": True
-                    }
-                    response = requests.post(
-                        f"{API_BASE_URL}/update_location",
-                        json=payload,
-                        timeout=10
-                    )
-                    if response.status_code == 200:
-                        logging.info(f"✅ Startup GPS location reported successfully: {startup_gps}")
-                    else:
-                        logging.warning(f"⚠️ Failed to report startup GPS location: {response.status_code}")
-                except Exception as e:
-                    logging.warning(f"⚠️ Error reporting startup GPS location: {e}")
+                # Verify GPS location is NOT in KL area (if device is in Melaka)
+                kl_check = self._calculate_distance(3.14, 101.69, startup_gps['lat'], startup_gps['lng'])
+                if kl_check >= 20000:  # GPS location is NOT in KL - accurate!
+                    logging.info(f"✅✅ Got accurate GPS location on startup (NOT KL): {startup_gps}")
+                    self.last_known_location = startup_gps
+                    # Immediately report this GPS location to clear any wrong location in database
+                    try:
+                        payload = {
+                            "device_id": self.device_id,
+                            "user": self.user_email,
+                            "location": startup_gps,
+                            "status": self.status,
+                            "force_update": True
+                        }
+                        response = requests.post(
+                            f"{API_BASE_URL}/update_location",
+                            json=payload,
+                            timeout=10
+                        )
+                        if response.status_code == 200:
+                            logging.info(f"✅ Startup GPS location reported successfully: {startup_gps}")
+                        else:
+                            logging.warning(f"⚠️ Failed to report startup GPS location: {response.status_code}")
+                    except Exception as e:
+                        logging.warning(f"⚠️ Error reporting startup GPS location: {e}")
+                else:
+                    logging.warning(f"⚠️ GPS location on startup shows KL area: {startup_gps}")
+                    logging.warning("   If you're in Melaka, GPS might not be working properly")
+                    logging.warning("   Please check Windows Location Services settings!")
+                    # Still cache it, but warn user
+                    self.last_known_location = startup_gps
             else:
-                logging.warning("⚠️ Could not get GPS location on startup. Will keep trying...")
+                logging.error("❌ Could not get GPS location on startup!")
+                logging.error("   This means Windows Location Services is not working properly")
+                logging.error("   Please enable it: Settings > Privacy & Security > Location")
+                logging.error("   Will keep trying GPS, but location may be inaccurate until GPS works")
         
         # Load report interval from config
         try:
