@@ -1,18 +1,7 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import apiClient from '../api/axios'
-import axios from 'axios' // Keep for Google login (needs full URL)
 import { useNavigate, Link } from 'react-router-dom'
-import { detectOSDevice } from '../utils/deviceDetection'
 import { discoverLocalDevice } from '../utils/deviceDiscovery'
-
-// API URL helper
-const getApiUrl = () => {
-  return import.meta.env.PROD 
-    ? (import.meta.env.VITE_API_URL || 'https://antitheft-backend.vercel.app')
-    : (import.meta.env.VITE_API_URL || 'http://localhost:5000')
-}
-
-const GOOGLE_CLIENT_ID = '913466167374-2t1no6si29f0phe28pef83oaolv836pm.apps.googleusercontent.com'
 
 const Login = ({ onLogin }) => {
   const [email, setEmail] = useState('')
@@ -20,99 +9,6 @@ const Login = ({ onLogin }) => {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
-
-  useEffect(() => {
-    // Initialize Google Sign-In when script loads
-    const initGoogleSignIn = () => {
-      if (window.google && window.google.accounts) {
-        window.google.accounts.id.initialize({
-          client_id: GOOGLE_CLIENT_ID,
-          callback: handleGoogleSignIn,
-        })
-        
-        // Render the button
-        window.google.accounts.id.renderButton(
-          document.getElementById('google-signin-button'),
-          {
-            type: 'standard',
-            size: 'large',
-            text: 'sign_in_with',
-            shape: 'rectangular',
-            theme: 'outline',
-            logo_alignment: 'left',
-          }
-        )
-      } else {
-        // Retry if Google script hasn't loaded yet
-        setTimeout(initGoogleSignIn, 100)
-      }
-    }
-
-    // Wait for Google script to load
-    if (window.google && window.google.accounts) {
-      initGoogleSignIn()
-    } else {
-      window.addEventListener('load', initGoogleSignIn)
-      // Also try immediately in case script already loaded
-      setTimeout(initGoogleSignIn, 500)
-    }
-
-    return () => {
-      window.removeEventListener('load', initGoogleSignIn)
-    }
-  }, [])
-
-  const handleGoogleSignIn = async (response) => {
-    try {
-      setLoading(true)
-      setError('')
-
-      // Send the credential to backend
-      const loginResponse = await axios.post(`${getApiUrl()}/api/google_login`, {
-        id_token: response.credential
-      })
-
-      if (loginResponse.data.access_token) {
-        const token = loginResponse.data.access_token
-        const user = loginResponse.data.user
-
-        // After Google login, automatically register/update the OS device
-        try {
-          const osDevice = await detectOSDevice()
-          let lastIp = null
-          try {
-            const ipResponse = await axios.get(`${getApiUrl()}/api/client_info`, {
-              params: { timezone: osDevice.timezone }
-            })
-            lastIp = ipResponse.data.ip || null
-          } catch (ipErr) {
-            console.warn('Unable to fetch client IP for Google login:', ipErr.response?.data?.error || ipErr.message)
-          }
-
-          const osDevicePayload = {
-            ...osDevice,
-            last_ip: lastIp,
-            user_email: user?.email
-          }
-
-          await axios.post(
-            `${getApiUrl()}/api/register_os_device`,
-            osDevicePayload,
-            { headers: { Authorization: `Bearer ${token}` } }
-          )
-        } catch (deviceErr) {
-          console.log('Browser device registration skipped (Google login):', deviceErr.response?.data?.error || deviceErr.message)
-        }
-
-        onLogin(token, user)
-        navigate('/dashboard')
-      }
-    } catch (err) {
-      setError(err.response?.data?.error || 'Google sign-in failed. Please try again.')
-    } finally {
-      setLoading(false)
-    }
-  }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -204,24 +100,6 @@ const Login = ({ onLogin }) => {
             {loading ? 'Signing in...' : 'Sign In'}
           </button>
         </form>
-
-        <div className="mt-6">
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-300"></div>
-            </div>
-            <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-white text-gray-500">Or continue with</span>
-            </div>
-          </div>
-
-          <div className="mt-4">
-            <div
-              id="google-signin-button"
-              className="w-full flex justify-center"
-            ></div>
-          </div>
-        </div>
 
         <div className="mt-6 space-y-3">
           <div className="text-center">
