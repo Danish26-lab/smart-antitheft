@@ -56,62 +56,69 @@ const MapView = ({ devices, center = { lat: 3.139, lng: 101.686 }, zoom = 10, ge
         device_id: device.device_id,
         last_lat: device.last_lat,
         last_lng: device.last_lng,
-        has_coordinates: !!(device.last_lat && device.last_lng)
+        last_lat_type: typeof device.last_lat,
+        last_lng_type: typeof device.last_lng,
+        has_coordinates: !!(device.last_lat && device.last_lng),
+        device_keys: Object.keys(device)
       })
       
-      if (device.last_lat && device.last_lng) {
+      // Check for alternative location field names
+      const lat = device.last_lat ?? device.lat ?? device.location?.lat
+      const lng = device.last_lng ?? device.lng ?? device.location?.lng
+      
+      if (lat && lng) {
         // Ensure coordinates are numbers and in valid ranges
-        const lat = Number(device.last_lat)
-        const lng = Number(device.last_lng)
+        const latNum = Number(lat)
+        const lngNum = Number(lng)
         
         // Debug logging to verify coordinates
         console.log(`[MapView] Device ${device.name} coordinates:`, { 
-          raw: { lat: device.last_lat, lng: device.last_lng },
-          parsed: { lat, lng },
-          isValid: !isNaN(lat) && !isNaN(lng) && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180
+          raw: { lat, lng },
+          parsed: { lat: latNum, lng: lngNum },
+          isValid: !isNaN(latNum) && !isNaN(lngNum) && latNum >= -90 && latNum <= 90 && lngNum >= -180 && lngNum <= 180
         })
         
         // CRITICAL: Validate and fix swapped coordinates globally
         // Latitude must be between -90 and 90, Longitude must be between -180 and 180
-        let finalLat = lat
-        let finalLng = lng
+        let finalLat = latNum
+        let finalLng = lngNum
         
         // Check if coordinates are swapped (common Windows Location API issue)
         // If lat is outside -90 to 90 range, it's definitely swapped
-        if (isNaN(lat) || isNaN(lng)) {
-          console.warn(`Invalid coordinates (NaN) for device ${device.name}: lat=${device.last_lat}, lng=${device.last_lng}`)
+        if (isNaN(latNum) || isNaN(lngNum)) {
+          console.warn(`Invalid coordinates (NaN) for device ${device.name}: lat=${lat}, lng=${lng}`)
           return
         }
         
         // Detect swapped coordinates: lat outside valid range
-        if (lat < -90 || lat > 90) {
+        if (latNum < -90 || latNum > 90) {
           // Latitude is invalid - coordinates are swapped
           console.warn(`[MapView] Detected swapped coordinates (lat out of range) for device ${device.name}!`, {
-            received: { lat, lng },
-            corrected: { lat: lng, lng: lat }
+            received: { lat: latNum, lng: lngNum },
+            corrected: { lat: lngNum, lng: latNum }
           })
-          finalLat = lng
-          finalLng = lat
-        } else if (lng < -180 || lng > 180) {
+          finalLat = lngNum
+          finalLng = latNum
+        } else if (lngNum < -180 || lngNum > 180) {
           // Longitude is invalid - coordinates are swapped
           console.warn(`[MapView] Detected swapped coordinates (lng out of range) for device ${device.name}!`, {
-            received: { lat, lng },
-            corrected: { lat: lng, lng: lat }
+            received: { lat: latNum, lng: lngNum },
+            corrected: { lat: lngNum, lng: latNum }
           })
-          finalLat = lng
-          finalLng = lat
+          finalLat = lngNum
+          finalLng = latNum
         } else {
           // Coordinates are in valid ranges, but check for common swap patterns
           // If lat is in typical lng range (e.g., 100-180) and lng is in typical lat range (e.g., -90 to 90)
           // This indicates a swap
-          if ((lat >= 100 && lat <= 180 && Math.abs(lng) <= 90) || 
-              (Math.abs(lat) <= 90 && (lng >= 100 && lng <= 180))) {
+          if ((latNum >= 100 && latNum <= 180 && Math.abs(lngNum) <= 90) || 
+              (Math.abs(latNum) <= 90 && (lngNum >= 100 && lngNum <= 180))) {
             // Check if swapping makes more sense (both in valid ranges after swap)
-            const swappedLat = lng
-            const swappedLng = lat
+            const swappedLat = lngNum
+            const swappedLng = latNum
             if (swappedLat >= -90 && swappedLat <= 90 && swappedLng >= -180 && swappedLng <= 180) {
               console.warn(`[MapView] Detected swapped coordinates (pattern match) for device ${device.name}!`, {
-                received: { lat, lng },
+                received: { lat: latNum, lng: lngNum },
                 corrected: { lat: swappedLat, lng: swappedLng }
               })
               finalLat = swappedLat
@@ -135,14 +142,31 @@ const MapView = ({ devices, center = { lat: 3.139, lng: 101.686 }, zoom = 10, ge
         const markerLatLng = [finalLat, finalLng]
         console.log('[MapView] Creating marker at:', markerLatLng)
 
-        // Use a circle marker so we don't have to manage Leaflet icon images
+        // Use a larger, more visible circle marker
         const marker = L.circleMarker(markerLatLng, {
-          radius: 8,
+          radius: 12,
           color: '#FFFFFF',
-          weight: 2,
+          weight: 3,
           fillColor: markerColor,
-          fillOpacity: 1,
+          fillOpacity: 0.9,
         }).addTo(map)
+        
+        // Add a pulsing effect for better visibility
+        marker.on('add', function() {
+          this.setStyle({
+            radius: 12
+          })
+        })
+        
+        // Make marker bounce on add for attention
+        marker.on('add', function() {
+          setTimeout(() => {
+            this.setStyle({ radius: 16 })
+            setTimeout(() => {
+              this.setStyle({ radius: 12 })
+            }, 300)
+          }, 100)
+        })
         
         // Format last seen time properly
         const lastSeenFormatted = device.last_seen ? formatDateTime(device.last_seen) : 'N/A'
