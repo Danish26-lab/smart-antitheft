@@ -153,19 +153,7 @@ if not is_serverless:
 else:
     print("[INFO] Skipping scheduler initialization (serverless environment)")
 
-@app.before_request
-def handle_preflight():
-    """Handle CORS preflight OPTIONS requests BEFORE route processing"""
-    if request.method == 'OPTIONS':
-        response = jsonify({'status': 'ok'})
-        response.headers.add('Access-Control-Allow-Origin', 'https://antitheft-frontend-2.vercel.app')
-        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
-        response.headers.add('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS')
-        response.headers.add('Access-Control-Allow-Credentials', 'true')
-        response.headers.add('Access-Control-Max-Age', '3600')
-        return response, 200
-
-@app.route('/', methods=['GET', 'OPTIONS'])
+@app.route('/', methods=['GET'])
 def root():
     """Root endpoint - simple response without database access"""
     return jsonify({
@@ -177,16 +165,6 @@ def root():
             'api_base': '/api'
         }
     }), 200
-
-@app.after_request
-def after_request(response):
-    """Add CORS headers to all responses"""
-    # Add CORS headers to all responses
-    response.headers.add('Access-Control-Allow-Origin', 'https://antitheft-frontend-2.vercel.app')
-    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
-    response.headers.add('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS')
-    response.headers.add('Access-Control-Allow-Credentials', 'true')
-    return response
 
 @app.route('/api/health')
 def health():
