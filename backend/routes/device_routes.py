@@ -1230,6 +1230,16 @@ def get_device_status(device_id):
     Get device status - can be accessed by device agent without JWT
     If JWT provided, returns full device details
     """
+    # Handle OPTIONS preflight request
+    if request.method == 'OPTIONS':
+        response = jsonify({})
+        response.headers.add('Access-Control-Allow-Origin', request.headers.get('Origin', '*'))
+        response.headers.add('Access-Control-Allow-Methods', 'GET, OPTIONS')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+        response.headers.add('Access-Control-Allow-Credentials', 'true')
+        response.headers.add('Access-Control-Max-Age', '3600')
+        return response
+    
     try:
         device = Device.query.filter_by(device_id=device_id).first()
         if not device:
