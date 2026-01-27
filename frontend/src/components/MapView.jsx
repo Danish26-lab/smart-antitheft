@@ -288,7 +288,6 @@ const MapView = ({ devices, center = { lat: 3.139, lng: 101.686 }, zoom = 10, ge
         }
       }
     }
-    }
   }, [devices, mapCenter, geofenceMemo])
 
   // Initialize map only once
