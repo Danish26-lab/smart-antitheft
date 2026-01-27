@@ -312,6 +312,7 @@ def agent_register_with_hardware():
         
         # Check if device already exists
         device = Device.query.filter_by(device_id=device_id).first()
+        is_new_device = device is None
         
         if device:
             # Update existing device with hardware info
@@ -405,13 +406,16 @@ def agent_register_with_hardware():
         
         db.session.flush()
         
-        # Log registration
-        log = ActivityLog(
-            device_id=device.id,
-            action='device_registered',
-            description=f'Device "{device.name}" registered/updated by native agent with full hardware info'
-        )
-        db.session.add(log)
+        # Only log "device_registered" when it's actually a NEW device
+        # Updates should not create registration logs (they happen on every agent startup/check)
+        if is_new_device:
+            log = ActivityLog(
+                device_id=device.id,
+                action='device_registered',
+                description=f'Device "{device.name}" registered by native agent with full hardware info'
+            )
+            db.session.add(log)
+        
         db.session.commit()
         
         return jsonify({
