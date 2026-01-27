@@ -1128,7 +1128,8 @@ def update_location():
             
             # Send notification to user
             try:
-                from models import User
+                # User model is imported at the top of this file.
+                # Only import the email helper here to avoid making User a local variable.
                 from utils.email_alert import send_geofence_alert
                 user = User.query.get(device.user_id)
                 if user and user.email:
