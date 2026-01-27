@@ -88,7 +88,12 @@ app.config['SQLALCHEMY_DATABASE_URI'] = db_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 # Initialize extensions
-CORS(app)
+# Configure CORS to allow preflight requests and handle redirects properly
+CORS(app, 
+     origins=['https://antitheft-frontend-2.vercel.app', 'http://localhost:5173', 'http://localhost:3000'],
+     methods=['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+     allow_headers=['Content-Type', 'Authorization'],
+     supports_credentials=True)
 jwt = JWTManager(app)
 db.init_app(app)
 
@@ -147,7 +152,7 @@ if not is_serverless:
 else:
     print("[INFO] Skipping scheduler initialization (serverless environment)")
 
-@app.route('/')
+@app.route('/', methods=['GET', 'OPTIONS'])
 def root():
     """Root endpoint - simple response without database access"""
     return jsonify({
@@ -159,6 +164,15 @@ def root():
             'api_base': '/api'
         }
     }), 200
+
+@app.after_request
+def after_request(response):
+    """Add CORS headers to all responses"""
+    response.headers.add('Access-Control-Allow-Origin', 'https://antitheft-frontend-2.vercel.app')
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+    response.headers.add('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS')
+    response.headers.add('Access-Control-Allow-Credentials', 'true')
+    return response
 
 @app.route('/api/health')
 def health():

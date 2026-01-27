@@ -5,10 +5,13 @@ import axios from 'axios'
 const getApiUrl = () => {
   // In production (Vercel), use the deployed backend URL
   if (import.meta.env.PROD) {
-    return import.meta.env.VITE_API_URL || 'https://antitheft-backend.vercel.app'
+    const url = import.meta.env.VITE_API_URL || 'https://antitheft-backend-2.vercel.app'
+    // Remove trailing slash to prevent double slashes
+    return url.replace(/\/+$/, '')
   }
   // In development, use localhost
-  return import.meta.env.VITE_API_URL || 'http://localhost:5000'
+  const url = import.meta.env.VITE_API_URL || 'http://localhost:5000'
+  return url.replace(/\/+$/, '')
 }
 
 // Create axios instance with base URL
