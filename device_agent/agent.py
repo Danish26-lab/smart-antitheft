@@ -559,16 +559,17 @@ class DeviceAgent:
                 timeout_strategies = [
                     (30, "quick"),
                     (60, "medium"),
-                    (90, "long")
+                    (90, "long"),
+                    (120, "extended")
                 ]
             else:
-                # Normal operation - use faster timeouts for real-time tracking
+                # Normal operation - use progressive timeouts for better GPS success
                 # Start with quick attempts, then escalate if needed
                 timeout_strategies = [
-                    (15, "quick"),   # Fast first attempt for real-time
-                    (30, "medium"),
-                    (60, "long"),
-                    (90, "extended")
+                    (20, "quick"),   # Initial attempt
+                    (40, "medium"),
+                    (80, "long"),
+                    (120, "extended")
                 ]
             
             self.last_gps_attempt_time = current_time
@@ -999,7 +1000,7 @@ class DeviceAgent:
         
         import subprocess
         # Try with progressive timeouts: longer timeouts for better GPS success
-        timeout_strategies = [(90, "medium"), (150, "long"), (180, "extended")]
+        timeout_strategies = [(90, "medium"), (120, "long"), (180, "extended")]
         
         for max_wait, strategy in timeout_strategies:
             try:
@@ -1127,6 +1128,71 @@ class DeviceAgent:
                 logging.warning(f"   This was likely wrong IP geolocation. Will force GPS on next attempt.")
                 self.last_known_location = None
                 self.gps_failed_count = 0  # Reset GPS failure count
+    
+    def _get_ip_geolocation_fallback(self):
+        """
+        Get IP geolocation as last resort fallback (even if KL area).
+        This ensures device shows on map even if GPS fails.
+        Returns location dict or None if all services fail.
+        """
+        location_services = [
+            {
+                'url': 'http://ip-api.com/json/',
+                'parser': lambda data: {
+                    'lat': data.get('lat'),
+                    'lng': data.get('lon')
+                } if data.get('status') == 'success' else None
+            },
+            {
+                'url': 'https://ipapi.co/json/',
+                'parser': lambda data: {
+                    'lat': data.get('latitude'),
+                    'lng': data.get('longitude')
+                } if data.get('latitude') and data.get('longitude') else None
+            },
+            {
+                'url': 'https://get.geojs.io/v1/ip/geo.json',
+                'parser': lambda data: {
+                    'lat': float(data.get('latitude', 0)),
+                    'lng': float(data.get('longitude', 0))
+                } if data.get('latitude') and data.get('longitude') else None
+            }
+        ]
+        
+        def validate_and_fix_coordinates(loc):
+            """Validate and fix swapped coordinates"""
+            if not loc or not loc.get('lat') or not loc.get('lng'):
+                return None
+            
+            raw_lat = float(loc['lat'])
+            raw_lng = float(loc['lng'])
+            
+            # Check if coordinates are swapped
+            if abs(raw_lat) > 90:
+                return {'lat': raw_lng, 'lng': raw_lat}
+            elif abs(raw_lng) > 180:
+                return {'lat': raw_lng, 'lng': raw_lat}
+            else:
+                return {'lat': raw_lat, 'lng': raw_lng}
+        
+        try:
+            for service in location_services:
+                try:
+                    response = requests.get(service['url'], timeout=5)
+                    if response.status_code == 200:
+                        data = response.json()
+                        raw_location = service['parser'](data)
+                        if raw_location and raw_location.get('lat') and raw_location.get('lng'):
+                            location = validate_and_fix_coordinates(raw_location)
+                            if location and (-90 <= location['lat'] <= 90) and (-180 <= location['lng'] <= 180):
+                                return location
+                except Exception as service_error:
+                    logging.debug(f"IP service {service['url']} failed: {service_error}")
+                    continue
+        except Exception as e:
+            logging.debug(f"IP geolocation fallback failed: {e}")
+        
+        return None
     
     def _check_location_services(self):
         """Check if Windows Location Services is enabled and provide detailed diagnostics"""
@@ -1445,18 +1511,21 @@ class DeviceAgent:
             
             # Get location - this method now handles all validation and GPS priority
             location = self.get_location()
+            is_approximate_location = False  # Track if location is approximate (IP geolocation fallback)
             
             # If get_location() returns None, it means GPS failed AND IP geolocation was rejected (KL area)
-            # Keep retrying GPS instead of reporting wrong location
+            # CRITICAL: Always report SOME location, even if approximate, so device shows on map
             if not location:
-                logging.warning("⚠️ Cannot get accurate location - GPS failed and IP geolocation rejected (KL area)")
+                logging.warning("⚠️ Cannot get accurate GPS location - GPS failed and IP geolocation rejected (KL area)")
                 logging.warning("   Device is likely in Melaka, but IP geolocation shows KL (wrong ISP location)")
                 logging.warning("   🔴 GPS is REQUIRED for accurate tracking!")
                 logging.warning("   💡 ENABLE Windows Location Services:")
                 logging.warning("      Settings > Privacy & Security > Location > Turn ON")
+                logging.warning("      Also check: Settings > Privacy & Security > Location > Allow desktop apps to access location")
+                
                 # Try one final GPS attempt with maximum timeout
                 if platform.system().lower() == 'windows':
-                    logging.info("🔄 Attempting one final GPS location attempt with maximum timeout...")
+                    logging.info("🔄 Attempting one final GPS location attempt with maximum timeout (120s)...")
                     gps_location = self._force_gps_location()
                     if gps_location:
                         # Verify GPS location is NOT in KL area (accurate for Melaka)
@@ -1470,13 +1539,45 @@ class DeviceAgent:
                             logging.warning(f"⚠️ GPS also shows KL area - might be correct if device is actually in KL")
                             location = gps_location  # Use it anyway (GPS is more accurate than IP)
                     else:
-                        # GPS failed completely - don't report wrong location
-                        logging.error("❌ GPS failed completely. Will NOT report wrong KL IP geolocation.")
-                        logging.error("   Skipping location report - enable GPS for accurate tracking!")
-                        return False  # Don't report wrong location
-                else:
-                    if not location:
-                        return False
+                        # GPS failed completely - use IP geolocation as fallback (better than no location)
+                        # This ensures device shows on map, even if approximate
+                        logging.error("❌ GPS failed completely after all attempts.")
+                        logging.error("   ⚠️ Using IP geolocation as fallback (approximate location)")
+                        logging.error("   📍 Location may be inaccurate - enable GPS for accurate tracking!")
+                        
+                        # Get IP geolocation as last resort (even if KL area)
+                        ip_location = self._get_ip_geolocation_fallback()
+                        if ip_location:
+                            location = ip_location
+                            is_approximate_location = True  # Mark as approximate
+                            logging.warning(f"⚠️ Using approximate IP geolocation: {location}")
+                            logging.warning("   This location may be inaccurate - enable Windows Location Services for GPS!")
+                        else:
+                            # Even IP geolocation failed - use last known location if available
+                            if self.last_known_location:
+                                logging.warning(f"⚠️ Using last known location (may be outdated): {self.last_known_location}")
+                                location = self.last_known_location
+                            else:
+                                # No location at all - report status without location
+                                logging.error("❌ No location available - reporting status without location")
+                                # Still report status, but without location
+                                payload = {
+                                    "device_id": self.device_id,
+                                    "user": self.user_email,
+                                    "status": self.status,
+                                    "location_unavailable": True
+                                }
+                                response = requests.post(
+                                    f"{API_BASE_URL}/update_location",
+                                    json=payload,
+                                    timeout=10
+                                )
+                                if response.status_code == 200:
+                                    logging.info("✅ Status reported (without location)")
+                                    return True
+                                else:
+                                    logging.error(f"Failed to report status: {response.status_code}")
+                                    return False
             
             # If location is in KL area, warn but still use it (better than no location)
             kl_area_lat = 3.14
@@ -1556,6 +1657,10 @@ class DeviceAgent:
                     "location": location,
                     "status": self.status
                 }
+            
+            # Add approximate location flag if using IP geolocation fallback
+            if is_approximate_location:
+                payload["location_approximate"] = True
             
             # Add current WiFi SSID to all payloads
             current_wifi_ssid = get_wifi_ssid()
