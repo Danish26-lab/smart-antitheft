@@ -1,81 +1,58 @@
 import { useEffect, useRef } from 'react'
-import { Loader } from '@googlemaps/js-api-loader'
+import L from 'leaflet'
+import 'leaflet/dist/leaflet.css'
 
 const LocationPicker = ({ onLocationSelect, initialLocation }) => {
   const mapRef = useRef(null)
   const markerRef = useRef(null)
-  const mapRef_instance = useRef(null)
+  const mapInstanceRef = useRef(null)
 
   useEffect(() => {
-    const initMap = async () => {
+    const initMap = () => {
       if (!mapRef.current) return
+      
+      // Initialize map with initial location or default (Kuala Lumpur)
+      const center = initialLocation || { lat: 3.139, lng: 101.686 }
 
-      const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY
-      if (!apiKey) {
-        console.error('Google Maps API key not found')
-        return
-      }
-
-      const loader = new Loader({
-        apiKey: apiKey,
-        version: 'weekly',
+      const map = L.map(mapRef.current, {
+        center: [center.lat, center.lng],
+        zoom: 15,
       })
 
-      try {
-        await loader.load()
-        
-        if (typeof google === 'undefined' || !google.maps) {
-          throw new Error('Google Maps API not loaded')
-        }
-        
-        const { Map } = await loader.importLibrary('maps')
-        const { Marker } = await loader.importLibrary('marker')
+      // OpenStreetMap tiles
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors',
+        maxZoom: 19,
+      }).addTo(map)
 
-        // Initialize map with initial location or default
-        const center = initialLocation || { lat: 3.139, lng: 101.686 }
-        
-        const map = new Map(mapRef.current, {
-          center: center,
-          zoom: 15,
-          mapTypeControl: true,
-          streetViewControl: true,
+      // Draggable marker
+      const marker = L.marker([center.lat, center.lng], {
+        draggable: true,
+        title: 'Drag to set device location',
+      }).addTo(map)
+
+      markerRef.current = marker
+      mapInstanceRef.current = map
+
+      // Update location when marker is dragged
+      marker.on('dragend', () => {
+        const position = marker.getLatLng()
+        onLocationSelect({
+          lat: position.lat,
+          lng: position.lng,
         })
+      })
 
-        // Add marker
-        const marker = new Marker({
-          position: center,
-          map: map,
-          draggable: true,
-          title: 'Drag to set device location'
-        })
-
-        markerRef.current = marker
-        mapRef_instance.current = map
-
-        // Update location when marker is dragged
-        marker.addListener('dragend', () => {
-          const position = marker.getPosition()
-          onLocationSelect({
-            lat: position.lat(),
-            lng: position.lng()
-          })
-        })
-
-        // Update location when map is clicked
-        map.addListener('click', (e) => {
-          const lat = e.latLng.lat()
-          const lng = e.latLng.lng()
-          marker.setPosition({ lat, lng })
-          onLocationSelect({ lat, lng })
-        })
-
-      } catch (error) {
-        console.error('Error loading Google Maps:', error)
-      }
+      // Update location when map is clicked
+      map.on('click', (e) => {
+        const { lat, lng } = e.latlng
+        marker.setLatLng([lat, lng])
+        onLocationSelect({ lat, lng })
+      })
     }
 
     initMap()
-  }, [])
+  }, [initialLocation, onLocationSelect])
 
   const getCurrentLocation = () => {
     if (navigator.geolocation) {
@@ -86,10 +63,9 @@ const LocationPicker = ({ onLocationSelect, initialLocation }) => {
             lng: position.coords.longitude
           }
           
-          if (markerRef.current && mapRef_instance.current) {
-            markerRef.current.setPosition(location)
-            mapRef_instance.current.setCenter(location)
-            mapRef_instance.current.setZoom(17)
+          if (markerRef.current && mapInstanceRef.current) {
+            markerRef.current.setLatLng([location.lat, location.lng])
+            mapInstanceRef.current.setView([location.lat, location.lng], 17)
           }
           
           onLocationSelect(location)
