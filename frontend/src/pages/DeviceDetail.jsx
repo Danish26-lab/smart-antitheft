@@ -143,7 +143,8 @@ const DeviceDetail = () => {
           device_id: response.data.device_id,
           last_lat: response.data.last_lat,
           last_lng: response.data.last_lng,
-          last_location_update: response.data.last_location_update
+          last_location_update: response.data.last_location_update,
+          has_location: !!(response.data.last_lat && response.data.last_lng)
         })
         setDevice(response.data)
       } else {
@@ -789,18 +790,25 @@ const DeviceDetail = () => {
           <div className="flex-1 bg-blue-900 flex items-center justify-center relative">
             {/* Always render the map so tiles are visible even before first location */}
             <div className="w-full h-full">
+              {device && console.log('[DeviceDetail] Passing device to MapView:', {
+                device_id: device.device_id,
+                name: device.name,
+                last_lat: device.last_lat,
+                last_lng: device.last_lng,
+                has_location: !!(device.last_lat && device.last_lng)
+              })}
               <MapView
                 devices={device ? [device] : []}
                 center={
-                  device.last_lat && device.last_lng
+                  device?.last_lat && device?.last_lng
                     ? { lat: device.last_lat, lng: device.last_lng }
                     : undefined
                 }
-                zoom={15}
+                zoom={device?.last_lat && device?.last_lng ? 15 : 10}
                 geofence={
-                  device.geofence_enabled &&
-                  device.geofence_center_lat &&
-                  device.geofence_center_lng
+                  device?.geofence_enabled &&
+                  device?.geofence_center_lat &&
+                  device?.geofence_center_lng
                     ? {
                         enabled: device.geofence_enabled,
                         center_lat: device.geofence_center_lat,

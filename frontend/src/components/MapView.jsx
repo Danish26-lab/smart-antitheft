@@ -51,6 +51,14 @@ const MapView = ({ devices, center = { lat: 3.139, lng: 101.686 }, zoom = 10, ge
     
     // Add new markers
     devices.forEach(device => {
+      console.log(`[MapView] Processing device for marker:`, {
+        name: device.name,
+        device_id: device.device_id,
+        last_lat: device.last_lat,
+        last_lng: device.last_lng,
+        has_coordinates: !!(device.last_lat && device.last_lng)
+      })
+      
       if (device.last_lat && device.last_lng) {
         // Ensure coordinates are numbers and in valid ranges
         const lat = Number(device.last_lat)
@@ -183,18 +191,39 @@ const MapView = ({ devices, center = { lat: 3.139, lng: 101.686 }, zoom = 10, ge
       geofenceCircleRef.current = null
     }
     
-    // Update map center only if it changed significantly
-    if (markersRef.current.length > 0 && mapCenter && !isNaN(mapCenter.lat) && !isNaN(mapCenter.lng)) {
+    // Update map center to device location if coordinates exist
+    // Center on the first device with valid coordinates, or use provided center
+    if (mapCenter && !isNaN(mapCenter.lat) && !isNaN(mapCenter.lng)) {
       const currentCenter = map.getCenter()
       if (currentCenter) {
         const latDiff = Math.abs(currentCenter.lat - mapCenter.lat)
         const lngDiff = Math.abs(currentCenter.lng - mapCenter.lng)
         // Only update if difference is significant (more than ~100m)
         if (latDiff > 0.001 || lngDiff > 0.001) {
-          map.setView([mapCenter.lat, mapCenter.lng])
+          console.log(`[MapView] Centering map on device:`, mapCenter)
+          map.setView([mapCenter.lat, mapCenter.lng], map.getZoom())
         }
       } else {
-        map.setView([mapCenter.lat, mapCenter.lng])
+        console.log(`[MapView] Setting initial map center:`, mapCenter)
+        map.setView([mapCenter.lat, mapCenter.lng], map.getZoom())
+      }
+    }
+    
+    // If markers were created, ensure they're visible
+    if (markersRef.current.length > 0) {
+      console.log(`[MapView] Created ${markersRef.current.length} marker(s)`)
+      // Fit map bounds to show all markers if multiple devices
+      if (markersRef.current.length > 1) {
+        const bounds = L.latLngBounds([])
+        markersRef.current.forEach(marker => {
+          bounds.extend(marker.getLatLng())
+        })
+        map.fitBounds(bounds, { padding: [20, 20] })
+      } else if (markersRef.current.length === 1) {
+        // Single marker: center on it with appropriate zoom
+        const markerPos = markersRef.current[0].getLatLng()
+        console.log(`[MapView] Centering map on marker at:`, markerPos)
+        map.setView(markerPos, 15)
       }
     }
   }, [devices, mapCenter, geofenceMemo])
