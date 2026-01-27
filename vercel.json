@@ -19,6 +19,5 @@
     "FLASK_APP": "backend/app.py",
     "PYTHONPATH": "backend",
     "VERCEL": "1"
-  },
-  "buildCommand": "python backend/utils/copy_agent_files.py"
+  }
 }
