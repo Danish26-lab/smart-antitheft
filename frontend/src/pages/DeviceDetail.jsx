@@ -787,64 +787,90 @@ const DeviceDetail = () => {
       <div className="flex-1 flex flex-col">
         {activeTab === 'map' && (
           <div className="flex-1 bg-blue-900 flex items-center justify-center relative">
+            {/* Always render the map so tiles are visible even before first location */}
+            <div className="w-full h-full">
+              <MapView
+                devices={device ? [device] : []}
+                center={
+                  device.last_lat && device.last_lng
+                    ? { lat: device.last_lat, lng: device.last_lng }
+                    : undefined
+                }
+                zoom={15}
+                geofence={
+                  device.geofence_enabled &&
+                  device.geofence_center_lat &&
+                  device.geofence_center_lng
+                    ? {
+                        enabled: device.geofence_enabled,
+                        center_lat: device.geofence_center_lat,
+                        center_lng: device.geofence_center_lng,
+                        radius_m: device.geofence_radius_m || 200,
+                      }
+                    : null
+                }
+              />
+            </div>
+
+            {/* Overlay controls / status */}
             {device.last_lat && device.last_lng ? (
-              <div className="w-full h-full">
-                {device && (
-                  <MapView
-                    devices={device ? [device] : []} 
-                    center={device.last_lat && device.last_lng ? { lat: device.last_lat, lng: device.last_lng } : undefined}
-                    zoom={15}
-                    geofence={device.geofence_enabled && device.geofence_center_lat && device.geofence_center_lng ? {
-                      enabled: device.geofence_enabled,
-                      center_lat: device.geofence_center_lat,
-                      center_lng: device.geofence_center_lng,
-                      radius_m: device.geofence_radius_m || 200
-                    } : null}
-                  />
-                )}
-                <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex flex-col items-center space-y-2 z-10">
-                  <button
-                    onClick={handleUpdateLocation}
-                    disabled={locationLoading}
-                    className={`bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-lg flex items-center space-x-2 shadow-lg ${locationLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
-                    title="Refresh to the latest location reported by the device agent"
-                  >
-                    <span>📍</span>
-                    <span>{locationLoading ? 'Refreshing...' : 'Refresh Device Location'}</span>
-                  </button>
-                  {/* Manual "Set Exact Location" button removed to keep UI simple.
-                      Location now comes from device reports and the GPS update button only. */}
-                  <button
-                    onClick={() => setShowGeofenceModal(true)}
-                    className={`px-4 py-2 rounded-lg flex items-center space-x-2 shadow-lg text-sm ${
-                      device.geofence_enabled 
-                        ? 'bg-red-500 hover:bg-red-600 text-white' 
-                        : 'bg-green-500 hover:bg-green-600 text-white'
-                    }`}
-                    title={device.geofence_enabled ? 'Geofence enabled - Click to configure' : 'Enable geofence alarm'}
-                  >
-                    <span>🔒</span>
-                    <span>{device.geofence_enabled ? `Geofence: ${device.geofence_radius_m || 200}m` : 'Enable Geofence Alarm'}</span>
-                  </button>
-                  {device.geofence_enabled && (
-                    <div className="bg-white px-3 py-1 rounded shadow text-xs text-gray-600">
-                      Alarm triggers when device moves outside {device.geofence_radius_m || 200}m radius
-                    </div>
-                  )}
-                </div>
-              </div>
-            ) : (
-              <div className="text-center text-white">
-                <h2 className="text-3xl font-semibold mb-4">Unknown location</h2>
-                <p className="text-blue-200 mb-6">Get your device's location with a quick refresh.</p>
+              <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex flex-col items-center space-y-2 z-10">
                 <button
                   onClick={handleUpdateLocation}
                   disabled={locationLoading}
-                  className={`bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-lg flex items-center space-x-2 mx-auto shadow-lg ${locationLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  className={`bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-lg flex items-center space-x-2 shadow-lg ${locationLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  title="Refresh to the latest location reported by the device agent"
                 >
                   <span>📍</span>
                   <span>{locationLoading ? 'Refreshing...' : 'Refresh Device Location'}</span>
                 </button>
+                {/* Manual "Set Exact Location" button removed to keep UI simple.
+                    Location now comes from device reports and the GPS update button only. */}
+                <button
+                  onClick={() => setShowGeofenceModal(true)}
+                  className={`px-4 py-2 rounded-lg flex items-center space-x-2 shadow-lg text-sm ${
+                    device.geofence_enabled
+                      ? 'bg-red-500 hover:bg-red-600 text-white'
+                      : 'bg-green-500 hover:bg-green-600 text-white'
+                  }`}
+                  title={
+                    device.geofence_enabled
+                      ? 'Geofence enabled - Click to configure'
+                      : 'Enable geofence alarm'
+                  }
+                >
+                  <span>🔒</span>
+                  <span>
+                    {device.geofence_enabled
+                      ? `Geofence: ${device.geofence_radius_m || 200}m`
+                      : 'Enable Geofence Alarm'}
+                  </span>
+                </button>
+                {device.geofence_enabled && (
+                  <div className="bg-white px-3 py-1 rounded shadow text-xs text-gray-600">
+                    Alarm triggers when device moves outside{' '}
+                    {device.geofence_radius_m || 200}m radius
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="absolute inset-0 flex flex-col items-center justify-center text-center text-white z-10 pointer-events-none">
+                <h2 className="text-3xl font-semibold mb-4">Unknown location</h2>
+                <p className="text-blue-200 mb-6">
+                  Get your device&apos;s location with a quick refresh.
+                </p>
+                <div className="pointer-events-auto">
+                  <button
+                    onClick={handleUpdateLocation}
+                    disabled={locationLoading}
+                    className={`bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-lg flex items-center space-x-2 mx-auto shadow-lg ${
+                      locationLoading ? 'opacity-50 cursor-not-allowed' : ''
+                    }`}
+                  >
+                    <span>📍</span>
+                    <span>{locationLoading ? 'Refreshing...' : 'Refresh Device Location'}</span>
+                  </button>
+                </div>
                 <p className="text-sm text-blue-300 mt-4">
                   This uses the last location reported by the device agent, not your browser.
                 </p>
