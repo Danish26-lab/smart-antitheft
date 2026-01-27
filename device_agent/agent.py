@@ -919,20 +919,38 @@ class DeviceAgent:
                     # else: last known is also in KL, might be wrong - use fresh IP location
                 
                 # No cached GPS location, or cached location is also in KL
-                # Use IP geolocation as fallback (better than nothing)
+                # CRITICAL: If IP geolocation shows KL area, it's likely WRONG for devices in Melaka
+                # Reject KL area IP geolocation and force GPS retry
                 if distance_from_kl < 20000:
-                    logging.warning(f"⚠️⚠️ Using IP geolocation (GPS unavailable): {ip_location}")
-                    logging.warning(f"   ⚠️ WARNING: This shows ISP location (KL area), may not be your actual device location!")
-                    logging.warning(f"   Accuracy: Off by 10-100km (shows ISP location, not device location)")
-                    logging.warning(f"   💡 For accurate tracking, enable Windows Location Services:")
-                    logging.warning(f"      Settings > Privacy & Security > Location > Turn ON")
+                    logging.error(f"❌❌ REJECTING IP geolocation - shows KL area ({ip_location}) but device may be in Melaka!")
+                    logging.error(f"   IP geolocation shows ISP location (KL), NOT actual device location!")
+                    logging.error(f"   This is WRONG for devices in Melaka - accuracy off by 100+ km!")
+                    logging.error(f"   🔴 FORCING GPS RETRY - GPS is REQUIRED for accurate tracking!")
+                    logging.error(f"   💡 ENABLE Windows Location Services NOW:")
+                    logging.error(f"      Settings > Privacy & Security > Location > Turn ON")
+                    # Force one more GPS attempt before giving up
+                    if platform.system().lower() == 'windows':
+                        logging.info("🔄 Forcing final GPS attempt after rejecting KL IP geolocation...")
+                        gps_location = self._force_gps_location()
+                        if gps_location:
+                            kl_check = self._calculate_distance(3.14, 101.69, gps_location['lat'], gps_location['lng'])
+                            if kl_check >= 20000:  # GPS location is NOT in KL - this is accurate!
+                                logging.info(f"✅✅ SUCCESS! Got accurate GPS location (NOT KL): {gps_location}")
+                                self.last_known_location = gps_location
+                                self.gps_failed_count = 0
+                                return gps_location
+                            else:
+                                logging.warning(f"⚠️ GPS also shows KL area - might be correct if device is actually in KL")
+                                return gps_location
+                    # If GPS still fails, return None to force agent to keep trying GPS
+                    logging.error(f"❌ GPS failed - will retry on next check. DO NOT use wrong KL IP geolocation!")
+                    return None  # Return None to force retry instead of using wrong location
                 else:
                     logging.warning(f"⚠️ Using IP geolocation (GPS unavailable): {ip_location}")
                     logging.warning(f"   Accuracy may be off by 10-100km")
                     logging.warning(f"   💡 Enable Windows Location Services for accurate tracking")
-                
-                # Use IP location as fallback - don't cache it (only cache GPS)
-                return ip_location
+                    # Use IP location as fallback only if NOT in KL area
+                    return ip_location
             
             # No IP location available either
             # Use last known GPS location if available
@@ -1426,25 +1444,34 @@ class DeviceAgent:
             # Get location - this method now handles all validation and GPS priority
             location = self.get_location()
             
-            # If get_location() returns None, try one final GPS attempt
+            # If get_location() returns None, it means GPS failed AND IP geolocation was rejected (KL area)
+            # Keep retrying GPS instead of reporting wrong location
             if not location:
-                logging.warning("⚠️ Cannot get location from any method. Trying final GPS attempt...")
+                logging.warning("⚠️ Cannot get accurate location - GPS failed and IP geolocation rejected (KL area)")
+                logging.warning("   Device is likely in Melaka, but IP geolocation shows KL (wrong ISP location)")
+                logging.warning("   🔴 GPS is REQUIRED for accurate tracking!")
+                logging.warning("   💡 ENABLE Windows Location Services:")
+                logging.warning("      Settings > Privacy & Security > Location > Turn ON")
                 # Try one final GPS attempt with maximum timeout
                 if platform.system().lower() == 'windows':
                     logging.info("🔄 Attempting one final GPS location attempt with maximum timeout...")
                     gps_location = self._force_gps_location()
                     if gps_location:
-                        logging.info(f"✅✅ SUCCESS! Got GPS location on final attempt: {gps_location}")
-                        location = gps_location
-                        self.last_known_location = gps_location
-                        self.gps_failed_count = 0
+                        # Verify GPS location is NOT in KL area (accurate for Melaka)
+                        kl_check = self._calculate_distance(3.14, 101.69, gps_location['lat'], gps_location['lng'])
+                        if kl_check >= 20000:  # GPS location is NOT in KL - accurate!
+                            logging.info(f"✅✅ SUCCESS! Got accurate GPS location (NOT KL): {gps_location}")
+                            location = gps_location
+                            self.last_known_location = gps_location
+                            self.gps_failed_count = 0
+                        else:
+                            logging.warning(f"⚠️ GPS also shows KL area - might be correct if device is actually in KL")
+                            location = gps_location  # Use it anyway (GPS is more accurate than IP)
                     else:
-                        # GPS failed - get_location() should have tried IP geolocation already
-                        # If it still returned None, all methods failed
-                        logging.warning("⚠️ GPS failed. IP geolocation should have been used as fallback.")
-                        if not location:
-                            logging.error("❌ All location methods failed. Skipping location report.")
-                            return False
+                        # GPS failed completely - don't report wrong location
+                        logging.error("❌ GPS failed completely. Will NOT report wrong KL IP geolocation.")
+                        logging.error("   Skipping location report - enable GPS for accurate tracking!")
+                        return False  # Don't report wrong location
                 else:
                     if not location:
                         return False

@@ -822,7 +822,7 @@ const DeviceDetail = () => {
 
             {/* Overlay controls / status */}
             {device.last_lat && device.last_lng ? (
-              <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex flex-col items-center space-y-2 z-10">
+              <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex flex-col items-center space-y-2 z-[1000]">
                 <button
                   onClick={handleUpdateLocation}
                   disabled={locationLoading}
@@ -862,7 +862,7 @@ const DeviceDetail = () => {
                 )}
               </div>
             ) : (
-              <div className="absolute inset-0 flex flex-col items-center justify-center text-center text-white z-10 pointer-events-none">
+              <div className="absolute inset-0 flex flex-col items-center justify-center text-center text-white z-[1000] pointer-events-none">
                 <h2 className="text-3xl font-semibold mb-4">Unknown location</h2>
                 <p className="text-blue-200 mb-6">
                   Get your device&apos;s location with a quick refresh.
