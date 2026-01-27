@@ -820,72 +820,58 @@ const DeviceDetail = () => {
               />
             </div>
 
-            {/* Overlay controls / status - MUST be above map */}
-            {device.last_lat && device.last_lng ? (
-              <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex flex-col items-center space-y-2" style={{ zIndex: 10000, pointerEvents: 'auto' }}>
-                <button
-                  onClick={handleUpdateLocation}
-                  disabled={locationLoading}
-                  className={`bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-lg flex items-center space-x-2 shadow-2xl font-semibold ${locationLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
-                  style={{ zIndex: 10001 }}
-                  title="Refresh to the latest location reported by the device agent"
-                >
-                  <span>📍</span>
-                  <span>{locationLoading ? 'Refreshing...' : 'Refresh Device Location'}</span>
-                </button>
-                {/* Manual "Set Exact Location" button removed to keep UI simple.
-                    Location now comes from device reports and the GPS update button only. */}
-                <button
-                  onClick={() => setShowGeofenceModal(true)}
-                  className={`px-4 py-2 rounded-lg flex items-center space-x-2 shadow-2xl text-sm font-semibold ${
-                    device.geofence_enabled
-                      ? 'bg-red-500 hover:bg-red-600 text-white'
-                      : 'bg-green-500 hover:bg-green-600 text-white'
-                  }`}
-                  style={{ zIndex: 10001 }}
-                  title={
-                    device.geofence_enabled
-                      ? 'Geofence enabled - Click to configure'
-                      : 'Enable geofence alarm'
-                  }
-                >
-                  <span>🔒</span>
-                  <span>
-                    {device.geofence_enabled
-                      ? `Geofence: ${device.geofence_radius_m || 200}m`
-                      : 'Enable Geofence Alarm'}
-                  </span>
-                </button>
-                {device.geofence_enabled && (
-                  <div className="bg-white px-3 py-1 rounded shadow text-xs text-gray-600">
-                    Alarm triggers when device moves outside{' '}
-                    {device.geofence_radius_m || 200}m radius
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div className="absolute inset-0 flex flex-col items-center justify-center text-center text-white pointer-events-none" style={{ zIndex: 10000 }}>
-                <h2 className="text-3xl font-semibold mb-4">Unknown location</h2>
-                <p className="text-blue-200 mb-6">
-                  Get your device&apos;s location with a quick refresh.
-                </p>
-                <div className="pointer-events-auto">
-                  <button
-                    onClick={handleUpdateLocation}
-                    disabled={locationLoading}
-                    className={`bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-lg flex items-center space-x-2 mx-auto shadow-lg ${
-                      locationLoading ? 'opacity-50 cursor-not-allowed' : ''
-                    }`}
-                  >
-                    <span>📍</span>
-                    <span>{locationLoading ? 'Refreshing...' : 'Refresh Device Location'}</span>
-                  </button>
+            {/* Overlay controls / status - Top right corner, always visible */}
+            <div className="absolute top-4 right-4 flex flex-col items-end space-y-2" style={{ zIndex: 10000, pointerEvents: 'auto' }}>
+              <button
+                onClick={handleUpdateLocation}
+                disabled={locationLoading}
+                className={`bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2 shadow-lg font-medium text-sm ${locationLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                style={{ zIndex: 10001 }}
+                title="Refresh to the latest location reported by the device agent"
+              >
+                <span>📍</span>
+                <span>{locationLoading ? 'Refreshing...' : 'Refresh Location'}</span>
+              </button>
+              
+              <button
+                onClick={() => setShowGeofenceModal(true)}
+                className={`px-4 py-2 rounded-lg flex items-center space-x-2 shadow-lg text-sm font-medium ${
+                  device.geofence_enabled
+                    ? 'bg-red-500 hover:bg-red-600 text-white'
+                    : 'bg-blue-500 hover:bg-blue-600 text-white'
+                }`}
+                style={{ zIndex: 10001 }}
+                title={
+                  device.geofence_enabled
+                    ? 'Geofence enabled - Click to configure'
+                    : 'Enable geofence alarm'
+                }
+              >
+                <span>🔒</span>
+                <span>
+                  {device.geofence_enabled
+                    ? `Geofence Active`
+                    : 'Enable Geofence Alarm'}
+                </span>
+              </button>
+              
+              {device.geofence_enabled && (
+                <div className="bg-white px-3 py-1 rounded shadow text-xs text-gray-600 max-w-xs text-right">
+                  Alarm triggers when device moves outside{' '}
+                  {device.geofence_radius_m || 200}m radius
                 </div>
-                <p className="text-sm text-blue-300 mt-4">
-                  This uses the last location reported by the device agent, not your browser.
+              )}
+            </div>
+
+            {/* Unknown location message - Less prominent, bottom left */}
+            {!device.last_lat || !device.last_lng ? (
+              <div className="absolute bottom-4 left-4 bg-white bg-opacity-90 px-4 py-3 rounded-lg shadow-lg" style={{ zIndex: 10000 }}>
+                <p className="text-sm text-gray-700 font-medium mb-1">📍 Unknown location</p>
+                <p className="text-xs text-gray-500">
+                  Click &quot;Refresh Location&quot; to get device location
                 </p>
               </div>
-            )}
+            ) : null}
           </div>
         )}
 
