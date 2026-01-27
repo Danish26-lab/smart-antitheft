@@ -591,7 +591,8 @@ class DeviceAgent:
                         [Windows.Devices.Geolocation.Geolocator,Windows.System.Devices,ContentType=WindowsRuntime] | Out-Null
                         $geolocator = New-Object Windows.Devices.Geolocation.Geolocator
                         $geolocator.DesiredAccuracy = [Windows.Devices.Geolocation.PositionAccuracy]::High
-                        $geolocator.DesiredAccuracyInMeters = 10
+                        $geolocator.DesiredAccuracyInMeters = 5  # Maximum accuracy: 5 meters
+                        $geolocator.MovementThreshold = 5  # Report movement if device moves 5+ meters
                         
                         $task = $geolocator.GetGeopositionAsync()
                         $geoposition = Await $task ([Windows.Devices.Geolocation.Geoposition])
@@ -1018,7 +1019,8 @@ class DeviceAgent:
                     [Windows.Devices.Geolocation.Geolocator,Windows.System.Devices,ContentType=WindowsRuntime] | Out-Null
                     $geolocator = New-Object Windows.Devices.Geolocation.Geolocator
                     $geolocator.DesiredAccuracy = [Windows.Devices.Geolocation.PositionAccuracy]::High
-                    $geolocator.DesiredAccuracyInMeters = 10
+                    $geolocator.DesiredAccuracyInMeters = 5  # Maximum accuracy: 5 meters
+                    $geolocator.MovementThreshold = 5  # Report movement if device moves 5+ meters
                     
                     $task = $geolocator.GetGeopositionAsync()
                     $geoposition = Await $task ([Windows.Devices.Geolocation.Geoposition])

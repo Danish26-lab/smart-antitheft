@@ -787,9 +787,9 @@ const DeviceDetail = () => {
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col">
         {activeTab === 'map' && (
-          <div className="flex-1 bg-blue-900 flex items-center justify-center relative">
+          <div className="flex-1 bg-blue-900 flex items-center justify-center relative overflow-hidden">
             {/* Always render the map so tiles are visible even before first location */}
-            <div className="w-full h-full">
+            <div className="w-full h-full relative" style={{ zIndex: 1 }}>
               {device && console.log('[DeviceDetail] Passing device to MapView:', {
                 device_id: device.device_id,
                 name: device.name,
@@ -820,13 +820,14 @@ const DeviceDetail = () => {
               />
             </div>
 
-            {/* Overlay controls / status */}
+            {/* Overlay controls / status - MUST be above map */}
             {device.last_lat && device.last_lng ? (
-              <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex flex-col items-center space-y-2 z-[1000]">
+              <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex flex-col items-center space-y-2" style={{ zIndex: 10000, pointerEvents: 'auto' }}>
                 <button
                   onClick={handleUpdateLocation}
                   disabled={locationLoading}
-                  className={`bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-lg flex items-center space-x-2 shadow-lg ${locationLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  className={`bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-lg flex items-center space-x-2 shadow-2xl font-semibold ${locationLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  style={{ zIndex: 10001 }}
                   title="Refresh to the latest location reported by the device agent"
                 >
                   <span>📍</span>
@@ -836,11 +837,12 @@ const DeviceDetail = () => {
                     Location now comes from device reports and the GPS update button only. */}
                 <button
                   onClick={() => setShowGeofenceModal(true)}
-                  className={`px-4 py-2 rounded-lg flex items-center space-x-2 shadow-lg text-sm ${
+                  className={`px-4 py-2 rounded-lg flex items-center space-x-2 shadow-2xl text-sm font-semibold ${
                     device.geofence_enabled
                       ? 'bg-red-500 hover:bg-red-600 text-white'
                       : 'bg-green-500 hover:bg-green-600 text-white'
                   }`}
+                  style={{ zIndex: 10001 }}
                   title={
                     device.geofence_enabled
                       ? 'Geofence enabled - Click to configure'
@@ -862,7 +864,7 @@ const DeviceDetail = () => {
                 )}
               </div>
             ) : (
-              <div className="absolute inset-0 flex flex-col items-center justify-center text-center text-white z-[1000] pointer-events-none">
+              <div className="absolute inset-0 flex flex-col items-center justify-center text-center text-white pointer-events-none" style={{ zIndex: 10000 }}>
                 <h2 className="text-3xl font-semibold mb-4">Unknown location</h2>
                 <p className="text-blue-200 mb-6">
                   Get your device&apos;s location with a quick refresh.

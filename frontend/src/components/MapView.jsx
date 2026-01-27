@@ -294,8 +294,8 @@ const MapView = ({ devices, center = { lat: 3.139, lng: 101.686 }, zoom = 10, ge
   }, [])
 
   return (
-    <div className="w-full h-full min-h-[500px] rounded-lg overflow-hidden shadow-lg">
-      <div ref={mapRef} className="w-full h-full" />
+    <div className="w-full h-full min-h-[500px] rounded-lg overflow-hidden shadow-lg" style={{ position: 'relative', zIndex: 1 }}>
+      <div ref={mapRef} className="w-full h-full" style={{ position: 'relative', zIndex: 1 }} />
     </div>
   )
 }
