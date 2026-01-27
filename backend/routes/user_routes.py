@@ -544,12 +544,45 @@ def login():
         return response, 200
     
     try:
+        # Check database connection first
+        try:
+            db.session.execute(db.text('SELECT 1'))
+        except Exception as db_error:
+            error_msg = str(db_error)
+            logging.error(f"Database connection error in login: {db_error}")
+            if 'sqlite:///:memory:' in error_msg or 'DATABASE_URL' in error_msg:
+                return jsonify({
+                    'error': 'Database not configured',
+                    'message': 'PostgreSQL database is required for Vercel deployment',
+                    'solution': 'Please set DATABASE_URL environment variable in Vercel'
+                }), 503
+            else:
+                return jsonify({
+                    'error': 'Database connection failed',
+                    'message': str(db_error)[:200]
+                }), 503
+        
+        # Ensure database tables exist
+        try:
+            from models import init_db
+            init_db()
+        except Exception as init_error:
+            # Tables might already exist, continue anyway
+            logging.debug(f"Database init check: {init_error}")
+        
         data = request.get_json()
         
         if not data or not data.get('email') or not data.get('password'):
             return jsonify({'error': 'Email and password are required'}), 400
         
-        user = User.query.filter_by(email=data['email']).first()
+        try:
+            user = User.query.filter_by(email=data['email']).first()
+        except Exception as query_error:
+            logging.error(f"Database query error in login: {query_error}")
+            return jsonify({
+                'error': 'Database error',
+                'message': 'Failed to query user. Please try again.'
+            }), 500
         
         if not user or not user.check_password(data['password']):
             return jsonify({'error': 'Invalid credentials'}), 401
@@ -721,7 +754,37 @@ def login():
         }), 200
         
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        import traceback
+        error_trace = traceback.format_exc()
+        logging.error(f"Login error: {e}\n{error_trace}")
+        
+        # Provide more helpful error messages
+        error_str = str(e).lower()
+        if 'no such table' in error_str or 'does not exist' in error_str:
+            return jsonify({
+                'error': 'Database not initialized',
+                'message': 'Database tables need to be created. Please try again in a moment.',
+                'details': 'The database connection is working, but tables are missing.'
+            }), 503
+        elif 'connection' in error_str or 'timeout' in error_str:
+            return jsonify({
+                'error': 'Database connection failed',
+                'message': 'Unable to connect to the database. Please check your DATABASE_URL configuration.',
+                'details': str(e)[:200]
+            }), 503
+        elif 'sqlite:///:memory:' in str(e) or 'DATABASE_URL' in str(e):
+            return jsonify({
+                'error': 'Database not configured',
+                'message': 'PostgreSQL database is required for Vercel deployment',
+                'solution': 'Please set DATABASE_URL environment variable in Vercel'
+            }), 503
+        else:
+            # Generic error - don't expose internal details in production
+            return jsonify({
+                'error': 'Internal server error',
+                'message': 'An error occurred during login. Please try again.',
+                'details': str(e)[:200] if not os.getenv('VERCEL') else None
+            }), 500
 
 @user_bp.route('/google_login', methods=['POST'])
 def google_login():
