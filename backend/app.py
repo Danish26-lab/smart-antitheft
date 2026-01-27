@@ -126,8 +126,8 @@ if not is_serverless:
             # Enable WAL mode for better concurrency (only for SQLite)
             if db_url and db_url.startswith('sqlite'):
                 try:
-                    engine = db.get_engine()
-                    with engine.connect() as conn:
+                    # Use db.engine instead of deprecated db.get_engine()
+                    with db.engine.connect() as conn:
                         conn.execute(db.text("PRAGMA journal_mode=WAL"))
                         conn.commit()
                     print("[OK] SQLite WAL mode enabled for better concurrency")

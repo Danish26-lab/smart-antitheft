@@ -363,6 +363,36 @@ def init_db():
     """Initialize database tables"""
     try:
         db.create_all()
+        
+        # Try to add missing columns if they don't exist (for existing databases)
+        try:
+            with db.engine.connect() as conn:
+                # Check if users table exists and add missing columns
+                result = conn.execute(db.text("PRAGMA table_info(users)"))
+                columns = [row[1] for row in result.fetchall()]
+                
+                if 'email_verified' not in columns:
+                    conn.execute(db.text("ALTER TABLE users ADD COLUMN email_verified BOOLEAN DEFAULT 0"))
+                    conn.commit()
+                    print("[MIGRATION] Added email_verified column to users table")
+                
+                if 'verification_code' not in columns:
+                    conn.execute(db.text("ALTER TABLE users ADD COLUMN verification_code VARCHAR(6)"))
+                    conn.commit()
+                    print("[MIGRATION] Added verification_code column to users table")
+                
+                if 'verification_code_expires' not in columns:
+                    conn.execute(db.text("ALTER TABLE users ADD COLUMN verification_code_expires DATETIME"))
+                    conn.commit()
+                    print("[MIGRATION] Added verification_code_expires column to users table")
+                
+                # Set existing users as verified
+                conn.execute(db.text("UPDATE users SET email_verified = 1 WHERE email_verified IS NULL OR email_verified = 0"))
+                conn.commit()
+        except Exception as migration_error:
+            # Migration failed - might be a new database, that's OK
+            print(f"[INFO] Column migration check: {migration_error}")
+        
     except Exception as e:
         import traceback
         print(f"Error creating database tables: {e}")
@@ -376,7 +406,8 @@ def init_db():
         admin = User(
             email='admin@antitheft.com',
             name='Admin User',
-            is_admin=True
+            is_admin=True,
+            email_verified=True  # Admin is auto-verified
         )
         admin.set_password('admin123')
         db.session.add(admin)
