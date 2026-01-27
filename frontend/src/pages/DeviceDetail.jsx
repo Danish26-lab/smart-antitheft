@@ -863,35 +863,6 @@ const DeviceDetail = () => {
               )}
             </div>
 
-            {/* Location status message */}
-            {!device.last_lat || !device.last_lng ? (
-              <div className="absolute bottom-4 left-4 bg-yellow-50 border-2 border-yellow-400 px-4 py-3 rounded-lg shadow-lg max-w-md" style={{ zIndex: 10000 }}>
-                <p className="text-sm text-yellow-800 font-semibold mb-2">⚠️ Location Not Available</p>
-                <p className="text-xs text-yellow-700 mb-2">
-                  Device location has not been reported yet. This usually means:
-                </p>
-                <ul className="text-xs text-yellow-700 list-disc list-inside mb-2 space-y-1">
-                  <li>Windows Location Services is disabled</li>
-                  <li>Device agent is not running</li>
-                  <li>Location permission not granted</li>
-                </ul>
-                <p className="text-xs text-yellow-600 font-medium mt-2">
-                  💡 Enable Windows Location: Settings → Privacy → Location → Turn ON
-                </p>
-              </div>
-            ) : (
-              <div className="absolute bottom-4 left-4 bg-green-50 border-2 border-green-400 px-4 py-3 rounded-lg shadow-lg" style={{ zIndex: 10000 }}>
-                <p className="text-sm text-green-800 font-semibold mb-1">✅ Device Location Active</p>
-                <p className="text-xs text-green-700">
-                  📍 {device.last_lat?.toFixed(6)}, {device.last_lng?.toFixed(6)}
-                </p>
-                {device.last_location_update && (
-                  <p className="text-xs text-green-600 mt-1">
-                    Updated: {formatRelativeTime(device.last_location_update)}
-                  </p>
-                )}
-              </div>
-            )}
           </div>
         )}
 

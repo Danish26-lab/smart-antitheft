@@ -142,29 +142,28 @@ const MapView = ({ devices, center = { lat: 3.139, lng: 101.686 }, zoom = 10, ge
         const markerLatLng = [finalLat, finalLng]
         console.log('[MapView] Creating marker at:', markerLatLng)
 
-        // Use a larger, more visible circle marker
+        // Use a larger, more visible circle marker with better styling
         const marker = L.circleMarker(markerLatLng, {
-          radius: 12,
+          radius: 15,
           color: '#FFFFFF',
-          weight: 3,
+          weight: 4,
           fillColor: markerColor,
-          fillOpacity: 0.9,
+          fillOpacity: 1.0,
         }).addTo(map)
         
-        // Add a pulsing effect for better visibility
+        // Make marker more visible with a shadow effect
         marker.on('add', function() {
-          this.setStyle({
-            radius: 12
-          })
+          // Ensure marker is on top
+          this.bringToFront()
         })
         
-        // Make marker bounce on add for attention
+        // Add pulsing animation for better visibility
         marker.on('add', function() {
           setTimeout(() => {
-            this.setStyle({ radius: 16 })
+            this.setStyle({ radius: 18, fillOpacity: 0.8 })
             setTimeout(() => {
-              this.setStyle({ radius: 12 })
-            }, 300)
+              this.setStyle({ radius: 15, fillOpacity: 1.0 })
+            }, 400)
           }, 100)
         })
         
@@ -233,7 +232,7 @@ const MapView = ({ devices, center = { lat: 3.139, lng: 101.686 }, zoom = 10, ge
       }
     }
     
-    // If markers were created, ensure they're visible
+    // If markers were created, ensure they're visible and map is centered
     if (markersRef.current.length > 0) {
       console.log(`[MapView] Created ${markersRef.current.length} marker(s)`)
       // Fit map bounds to show all markers if multiple devices
@@ -242,13 +241,28 @@ const MapView = ({ devices, center = { lat: 3.139, lng: 101.686 }, zoom = 10, ge
         markersRef.current.forEach(marker => {
           bounds.extend(marker.getLatLng())
         })
-        map.fitBounds(bounds, { padding: [20, 20] })
+        map.fitBounds(bounds, { padding: [50, 50] })
       } else if (markersRef.current.length === 1) {
-        // Single marker: center on it with appropriate zoom
+        // Single marker: center on it with appropriate zoom and ensure it's visible
         const markerPos = markersRef.current[0].getLatLng()
         console.log(`[MapView] Centering map on marker at:`, markerPos)
-        map.setView(markerPos, 15)
+        // Use zoom level 15 for good detail, or 13 if coordinates suggest a wider area
+        const zoomLevel = 15
+        map.setView(markerPos, zoomLevel)
+        // Open popup to make marker more obvious
+        setTimeout(() => {
+          markersRef.current[0].openPopup()
+        }, 500)
       }
+    } else {
+      // No markers created - log why
+      console.warn(`[MapView] No markers created. Devices:`, devices.map(d => ({
+        name: d.name,
+        has_lat: !!d.last_lat,
+        has_lng: !!d.last_lng,
+        lat: d.last_lat,
+        lng: d.last_lng
+      })))
     }
   }, [devices, mapCenter, geofenceMemo])
 
