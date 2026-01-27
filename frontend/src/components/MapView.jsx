@@ -157,11 +157,11 @@ const MapView = ({ devices, center = { lat: 3.139, lng: 101.686 }, zoom = 10, ge
         const markerLatLng = [finalLat, finalLng]
         console.log('[MapView] Creating marker at:', markerLatLng)
 
-        // Use a larger, more visible circle marker with shadow for better visibility
+        // Use a visible circle marker with appropriate size
         const marker = L.circleMarker(markerLatLng, {
-          radius: 18,
+          radius: 12,
           color: '#FFFFFF',
-          weight: 4,
+          weight: 3,
           fillColor: markerColor,
           fillOpacity: 1.0,
         }).addTo(map)
@@ -173,9 +173,9 @@ const MapView = ({ devices, center = { lat: 3.139, lng: 101.686 }, zoom = 10, ge
         marker.on('add', function() {
           // Initial pulse animation
           setTimeout(() => {
-            this.setStyle({ radius: 22, fillOpacity: 0.7 })
+            this.setStyle({ radius: 15, fillOpacity: 0.7 })
             setTimeout(() => {
-              this.setStyle({ radius: 18, fillOpacity: 1.0 })
+              this.setStyle({ radius: 12, fillOpacity: 1.0 })
             }, 300)
           }, 100)
         })
