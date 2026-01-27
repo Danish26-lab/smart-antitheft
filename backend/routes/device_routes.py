@@ -682,17 +682,25 @@ def agent_register():
     try:
         data = request.get_json() or {}
         fingerprint_hash = data.get('fingerprint_hash')
+        user_email = data.get('user_email')
         
         if not fingerprint_hash:
             return jsonify({'error': 'fingerprint_hash is required'}), 400
+        
+        # Optional: resolve user from email if provided
+        user = None
+        if user_email:
+            user = User.query.filter_by(email=user_email).first()
         
         # Check if device with this fingerprint already exists
         existing_device = Device.query.filter_by(fingerprint_hash=fingerprint_hash).first()
         
         if existing_device:
-            # Device already registered - return existing device_id
+            # Device already registered - update last_seen and optionally link to user
             existing_device.last_seen = datetime.utcnow()
             existing_device.device_type = 'agent_device'
+            if user and existing_device.user_id is None:
+                existing_device.user_id = user.id
             db.session.commit()
             
             logging.info(f"Existing device found: {existing_device.device_id} (fingerprint: {fingerprint_hash[:16]}...)")
@@ -702,7 +710,7 @@ def agent_register():
                 'user_linked': existing_device.user_id is not None
             }), 200
         
-        # Create new UNOWNED device
+        # Create new device (linked if user provided, otherwise UNOWNED)
         os_info = data.get('os_info', {})
         hardware_info = data.get('hardware_info', {})
         system_info = hardware_info.get('system_info', {})
@@ -756,14 +764,14 @@ def agent_register():
         if os_info.get('os_name'):
             device_name = f"{device_name} – {os_info.get('os_name', '')}".strip()
         
-        # Create device (user_id is NULL = unowned)
+        # Create device (link to user if we resolved one)
         device = Device(
             device_id=device_id,
             fingerprint_hash=fingerprint_hash,
             name=device_name,
             device_type='agent_device',
-            user_id=None,  # UNOWNED - will be linked later
-            status='active',
+            user_id=user.id if user else None,
+            status='active' if user else 'UNOWNED',
             registered_at=datetime.utcnow(),
             os_name=os_info.get('os_name'),
             os_version=os_info.get('os_version'),
@@ -792,19 +800,26 @@ def agent_register():
         db.session.flush()
         
         # Log registration
+        description = f'Device "{device.name}" registered by agent'
+        if user:
+            description += f' and linked to user {user.email}'
+        else:
+            description += ' (unowned, awaiting user link)'
+        
         log = ActivityLog(
             device_id=device.id,
             action='device_registered',
-            description=f'Device "{device.name}" registered by agent (unowned, awaiting user link)'
+            description=description
         )
         db.session.add(log)
         db.session.commit()
         
-        logging.info(f"New device registered: {device_id} (fingerprint: {fingerprint_hash[:16]}...)")
+        logging.info(f"New device registered: {device_id} (fingerprint: {fingerprint_hash[:16]}...) user_email={user_email} linked={bool(user)}")
         
         return jsonify({
             'device_id': device_id,
-            'message': 'Device registered successfully. Waiting for user account link.'
+            'message': 'Device registered successfully',
+            'user_linked': user is not None
         }), 201
         
     except Exception as e:
@@ -837,6 +852,14 @@ def update_location():
                 status=data.get('status', 'active')
             )
             db.session.add(device)
+        elif device.user_id is None:
+            # Device exists but is UNOWNED – try to link it to a specific user
+            # using the optional "user" or "user_email" field in the payload.
+            user_email = data.get('user') or data.get('user_email')
+            if user_email:
+                owner = User.query.filter_by(email=user_email).first()
+                if owner:
+                    device.user_id = owner.id
             db.session.commit()
         
         # CRITICAL: Handle status updates FIRST, before location validation

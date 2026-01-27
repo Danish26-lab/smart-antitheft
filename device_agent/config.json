@@ -1,9 +1,8 @@
 {
   "device_id": "Danish-R9NRCX02-4",
-  "user_email": "admin@antitheft.com",
+  "user_email": "danishdanialkm26@gmail.com",
   "report_interval": 15,
   "check_commands_interval": 0.1,
-  "google_maps_api_key": "AIzaSyBjxyFqpY0PvAX6FrlKhWtRaZ0iLwD_Cnk",
-  "fingerprint_hash": "5bb56fb06bdbdee79c11fca73cd579e10ebc2e96290dd3c0149c72d39404bf67",
+  "fingerprint_hash": "76f38c1b5fe7f5087ea57d863c4289c71d80ce6df35ca8258a9db4370e0393d3",
   "backend_url": "https://antitheft-backend-2.vercel.app"
 }

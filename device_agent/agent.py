@@ -307,7 +307,10 @@ class DeviceAgent:
                     "cpu_info": hardware_info.get("cpu_info", {}),
                     "ram_info": hardware_info.get("ram_info", {}),
                     "network_info": hardware_info.get("network_info", {})
-                }
+                },
+                # NEW: pass configured user_email so backend can auto-link
+                # the UNOWNED device to this account when possible
+                "user_email": self.user_email,
             }
             
             # Include preferred device_id if available
