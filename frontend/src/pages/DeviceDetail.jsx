@@ -854,13 +854,6 @@ const DeviceDetail = () => {
                     : 'Enable Geofence Alarm'}
                 </span>
               </button>
-              
-              {device.geofence_enabled && (
-                <div className="bg-white px-3 py-1 rounded shadow text-xs text-gray-600 max-w-xs text-right">
-                  Alarm triggers when device moves outside{' '}
-                  {device.geofence_radius_m || 200}m radius
-                </div>
-              )}
             </div>
 
           </div>
