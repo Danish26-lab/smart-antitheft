@@ -51,14 +51,47 @@ const MapView = ({ devices, center = { lat: 3.139, lng: 101.686 }, zoom = 10, ge
     
     // Add new markers
     devices.forEach(device => {
-      // Check for alternative location field names
-      const lat = device.last_lat ?? device.lat ?? device.location?.lat
-      const lng = device.last_lng ?? device.lng ?? device.location?.lng
+      console.log(`[MapView] Processing device for marker:`, {
+        name: device.name,
+        device_id: device.device_id,
+        last_lat: device.last_lat,
+        last_lng: device.last_lng,
+        last_lat_type: typeof device.last_lat,
+        last_lng_type: typeof device.last_lng,
+        has_coordinates: !!(device.last_lat && device.last_lng),
+        device_keys: Object.keys(device)
+      })
       
-      if (lat && lng) {
+      // Check for alternative location field names (handle various data formats)
+      let lat = device.last_lat ?? device.lat ?? device.location?.lat
+      let lng = device.last_lng ?? device.lng ?? device.location?.lng
+      
+      // Handle null/undefined explicitly - try alternative field names
+      if (lat === null || lat === undefined || lng === null || lng === undefined) {
+        // Try alternative field names with different casing
+        lat = device.Last_lat ?? device.LAT ?? null
+        lng = device.Last_lng ?? device.LNG ?? null
+      }
+      
+      // Convert to numbers, handling string numbers
+      // Reject 0,0 coordinates (invalid - in ocean off Africa)
+      if (lat && lng && lat !== 0 && lng !== 0) {
         // Ensure coordinates are numbers and in valid ranges
-        const latNum = Number(lat)
-        const lngNum = Number(lng)
+        const latNum = typeof lat === 'string' ? parseFloat(lat) : Number(lat)
+        const lngNum = typeof lng === 'string' ? parseFloat(lng) : Number(lng)
+        
+        // Reject if coordinates are still 0 after parsing
+        if (latNum === 0 && lngNum === 0) {
+          console.warn(`[MapView] Rejecting invalid coordinates (0,0) for device ${device.name}`)
+          return
+        }
+        
+        // Debug logging to verify coordinates
+        console.log(`[MapView] Device ${device.name} coordinates:`, { 
+          raw: { lat, lng },
+          parsed: { lat: latNum, lng: lngNum },
+          isValid: !isNaN(latNum) && !isNaN(lngNum) && latNum >= -90 && latNum <= 90 && lngNum >= -180 && lngNum <= 180
+        })
         
         // CRITICAL: Validate and fix swapped coordinates globally
         // Latitude must be between -90 and 90, Longitude must be between -180 and 180
@@ -122,30 +155,34 @@ const MapView = ({ devices, center = { lat: 3.139, lng: 101.686 }, zoom = 10, ge
         if (device.status === 'locked') markerColor = '#FFA500'
 
         const markerLatLng = [finalLat, finalLng]
+        console.log('[MapView] Creating marker at:', markerLatLng)
 
-        // Use a larger, more visible circle marker with better styling
+        // Use a larger, more visible circle marker with shadow for better visibility
         const marker = L.circleMarker(markerLatLng, {
-          radius: 15,
+          radius: 18,
           color: '#FFFFFF',
           weight: 4,
           fillColor: markerColor,
           fillOpacity: 1.0,
         }).addTo(map)
         
-        // Make marker more visible with a shadow effect
-        marker.on('add', function() {
-          // Ensure marker is on top
-          this.bringToFront()
-        })
+        // Ensure marker is always on top and visible
+        marker.bringToFront()
         
         // Add pulsing animation for better visibility
         marker.on('add', function() {
+          // Initial pulse animation
           setTimeout(() => {
-            this.setStyle({ radius: 18, fillOpacity: 0.8 })
+            this.setStyle({ radius: 22, fillOpacity: 0.7 })
             setTimeout(() => {
-              this.setStyle({ radius: 15, fillOpacity: 1.0 })
-            }, 400)
+              this.setStyle({ radius: 18, fillOpacity: 1.0 })
+            }, 300)
           }, 100)
+        })
+        
+        // Add click handler to ensure marker is interactive
+        marker.on('click', function() {
+          this.openPopup()
         })
         
         // Format last seen time properly
@@ -204,14 +241,16 @@ const MapView = ({ devices, center = { lat: 3.139, lng: 101.686 }, zoom = 10, ge
         const lngDiff = Math.abs(currentCenter.lng - mapCenter.lng)
         // Only update if difference is significant (more than ~100m)
         if (latDiff > 0.001 || lngDiff > 0.001) {
+          console.log(`[MapView] Centering map on device:`, mapCenter)
           map.setView([mapCenter.lat, mapCenter.lng], map.getZoom())
         }
       } else {
+        console.log(`[MapView] Setting initial map center:`, mapCenter)
         map.setView([mapCenter.lat, mapCenter.lng], map.getZoom())
       }
     }
     
-    // If markers were created, ensure they're visible and map is centered
+    // If markers were created, ensure they're visible
     if (markersRef.current.length > 0) {
       console.log(`[MapView] Created ${markersRef.current.length} marker(s)`)
       // Fit map bounds to show all markers if multiple devices
@@ -220,32 +259,35 @@ const MapView = ({ devices, center = { lat: 3.139, lng: 101.686 }, zoom = 10, ge
         markersRef.current.forEach(marker => {
           bounds.extend(marker.getLatLng())
         })
-        map.fitBounds(bounds, { padding: [50, 50] })
+        map.fitBounds(bounds, { padding: [20, 20] })
       } else if (markersRef.current.length === 1) {
         // Single marker: center on it with appropriate zoom and ensure it's visible
         const markerPos = markersRef.current[0].getLatLng()
-        // Use zoom level 15 for good detail
-        const zoomLevel = 15
-        map.setView(markerPos, zoomLevel)
-        // Open popup to make marker more obvious
+        console.log(`[MapView] Centering map on marker at:`, markerPos)
+        // Use zoom level 15 for good detail (street level)
+        map.setView(markerPos, 15)
+        // Open popup automatically to make marker obvious
         setTimeout(() => {
-          markersRef.current[0].openPopup()
-        }, 500)
+          if (markersRef.current.length > 0) {
+            markersRef.current[0].openPopup()
+          }
+        }, 800)
       }
-    // Note: No markers created is normal if device hasn't reported location yet
-    // This is not an error - just informational
-    if (markersRef.current.length === 0 && devices.length > 0) {
-      const device = devices[0]
-      const lat = device.last_lat ?? device.lat ?? device.location?.lat
-      const lng = device.last_lng ?? device.lng ?? device.location?.lng
-      
-      if (!lat || !lng) {
-        // Only log once per device to avoid console spam
-        if (!device._location_warned) {
-          console.info(`[MapView] Device "${device.name}" has no location data yet. Marker will appear when device agent reports location.`)
-          device._location_warned = true
+    } else {
+      // No markers - log helpful info
+      if (devices.length > 0) {
+        const device = devices[0]
+        const hasLat = device.last_lat !== null && device.last_lat !== undefined
+        const hasLng = device.last_lng !== null && device.last_lng !== undefined
+        if (!hasLat || !hasLng) {
+          console.info(`[MapView] No marker: Device "${device.name}" has no location data.`, {
+            last_lat: device.last_lat,
+            last_lng: device.last_lng,
+            suggestion: 'Ensure device agent is running and Windows Location Services is enabled'
+          })
         }
       }
+    }
     }
   }, [devices, mapCenter, geofenceMemo])
 
