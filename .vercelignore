@@ -1,0 +1,56 @@
+# Ignore files that shouldn't be deployed to Vercel
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+database/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Node modules (for frontend)
+node_modules/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Logs
+*.log
+logs/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build artifacts
+dist/
+build/
+.vercel/
+
+# Device agent logs (but keep the files)
+device_agent/*.log
+device_agent/screenshots/
+
+# Keep device_agent files for download endpoint
+!device_agent/*.py
+!device_agent/*.bat
+!device_agent/*.txt
+!device_agent/*.md
+!device_agent/*.json
+!device_agent/*.vbs
+
+# Keep backend/device_agent files (copied for Vercel)
+!backend/device_agent/

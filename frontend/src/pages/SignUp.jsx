@@ -1,0 +1,269 @@
+import { useState } from 'react'
+import apiClient from '../api/axios'
+import axios from 'axios' // Keep for full URL usage
+import { useNavigate, Link } from 'react-router-dom'
+import { detectOSDevice } from '../utils/deviceDetection'
+import { discoverLocalDevice } from '../utils/deviceDiscovery'
+
+// API URL helper
+const getApiUrl = () => {
+  return import.meta.env.PROD 
+    ? (import.meta.env.VITE_API_URL || 'https://antitheft-backend.vercel.app')
+    : (import.meta.env.VITE_API_URL || 'http://localhost:5000')
+}
+
+const SignUp = ({ onLogin }) => {
+  const [name, setName] = useState('')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
+  const navigate = useNavigate()
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    setError('')
+
+    // Validation
+    if (password.length < 6) {
+      setError('Password must be at least 6 characters long')
+      return
+    }
+
+    if (password !== confirmPassword) {
+      setError('Passwords do not match')
+      return
+    }
+
+    if (!email || !email.includes('@')) {
+      setError('Please enter a valid email address')
+      return
+    }
+
+    setLoading(true)
+
+    try {
+      // Prey Project-style: Discover running agent device on localhost
+      const deviceDiscovery = await discoverLocalDevice()
+
+      // Browser / OS-level device detection (for auto-registering a device row)
+      let osDevice = null
+      try {
+        osDevice = await detectOSDevice()
+        console.log('[DEVICE-DETECTION] Detected OS device:', osDevice)
+      } catch (detectErr) {
+        console.warn('[DEVICE-DETECTION] Failed to detect OS device:', detectErr)
+      }
+      
+      // Build registration payload
+      const registrationData = {
+        email,
+        password,
+        name: name || email.split('@')[0]
+      }
+      
+      // Attach OS/browser device metadata so backend can auto-create a device
+      if (osDevice) {
+        registrationData.os_device = osDevice
+      }
+      
+      // Link existing agent device if discovered
+      if (deviceDiscovery.success && deviceDiscovery.device_id) {
+        registrationData.device_id = deviceDiscovery.device_id
+        if (deviceDiscovery.fingerprint_hash) {
+          registrationData.fingerprint_hash = deviceDiscovery.fingerprint_hash
+        }
+        console.log(`[DEVICE-LINK] Linking discovered device: ${deviceDiscovery.device_id}`)
+      }
+      
+      // Register user (will link device if device_id provided)
+      const response = await apiClient.post('/api/register_user', registrationData)
+
+      if (response.data.user) {
+        // Check if email verification is required
+        if (response.data.verification_required) {
+          // Store email and password for verification flow
+          localStorage.setItem('pending_verification_email', email)
+          
+          // Redirect to verification page
+          navigate('/verify-email', {
+            state: {
+              email,
+              password,
+              device_id: deviceDiscovery.success ? deviceDiscovery.device_id : null
+            }
+          })
+          return
+        }
+        
+        // Check if device was linked
+        if (response.data.device_linked && response.data.device) {
+          console.log(`[DEVICE-LINK] Device linked: ${response.data.device.name}`)
+        } else {
+          console.log('[DEVICE-LINK] No device linked. Start the agent to link your device.')
+        }
+        
+        // Auto-download agent installer ZIP after successful registration
+        // Only download if device was NOT linked (user needs to install agent)
+        if (!response.data.device_linked) {
+          try {
+            const apiUrl = getApiUrl()
+            const downloadUrl = `${apiUrl}/api/download_agent`
+            
+            // Small delay to ensure registration completes
+            setTimeout(() => {
+              // Create a temporary link and trigger download
+              const link = document.createElement('a')
+              link.href = downloadUrl
+              link.download = 'antitheft-agent-installer.zip'
+              document.body.appendChild(link)
+              link.click()
+              document.body.removeChild(link)
+              
+              console.log('[DOWNLOAD] Agent installer download started')
+            }, 500)
+          } catch (downloadErr) {
+            console.warn('[DOWNLOAD] Failed to auto-download agent installer:', downloadErr)
+            // Don't block registration if download fails
+          }
+        }
+        
+        // If no verification required, log in immediately
+        try {
+          const loginData = {
+            email,
+            password
+          }
+          
+          // Include device_id in login if available
+          if (deviceDiscovery.success && deviceDiscovery.device_id) {
+            loginData.device_id = deviceDiscovery.device_id
+          }
+          
+          const loginResponse = await apiClient.post('/api/login', loginData)
+
+          if (loginResponse.data.access_token) {
+            onLogin(loginResponse.data.access_token, loginResponse.data.user)
+            navigate('/dashboard')
+            return
+          }
+        } catch (loginErr) {
+          // Registration successful but auto-login failed
+          setError('Account created successfully! Please login.')
+          setTimeout(() => {
+            navigate('/login')
+          }, 2000)
+          return
+        }
+      }
+    } catch (err) {
+      // Get error message from backend response
+      const errorMessage = err.response?.data?.message || err.response?.data?.error || err.message || 'Registration failed. Please try again.'
+      setError(errorMessage)
+      console.error('Registration error:', err.response?.data || err.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center p-4 sm:p-6">
+      <div className="bg-white rounded-lg shadow-2xl p-4 sm:p-6 md:p-8 w-full max-w-md">
+        <div className="text-center mb-6 sm:mb-8">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-2">🛡️ Anti-Theft System</h1>
+          <p className="text-sm sm:text-base text-gray-600">Create your account</p>
+        </div>
+
+        {error && (
+          <div className={`${error.includes('successfully') ? 'bg-green-100 border-green-400 text-green-700' : 'bg-red-100 border-red-400 text-red-700'} border px-4 py-3 rounded mb-4`}>
+            {error}
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
+          <div>
+            <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
+              Full Name
+            </label>
+            <input
+              type="text"
+              id="name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent touch-manipulation"
+              placeholder="John Doe"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+              Email Address
+            </label>
+            <input
+              type="email"
+              id="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent touch-manipulation"
+              placeholder="your.email@example.com"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
+              Password
+            </label>
+            <input
+              type="password"
+              id="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              minLength={6}
+              className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent touch-manipulation"
+              placeholder="At least 6 characters"
+            />
+            <p className="text-xs text-gray-500 mt-1">Must be at least 6 characters</p>
+          </div>
+
+          <div>
+            <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-2">
+              Confirm Password
+            </label>
+            <input
+              type="password"
+              id="confirmPassword"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              required
+              className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent touch-manipulation"
+              placeholder="Re-enter your password"
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 touch-manipulation text-base"
+          >
+            {loading ? 'Creating account...' : 'Sign Up'}
+          </button>
+        </form>
+
+        <div className="mt-6 text-center">
+          <p className="text-sm text-gray-600">
+            Already have an account?{' '}
+            <Link to="/login" className="text-blue-500 hover:text-blue-600 font-medium">
+              Sign in
+            </Link>
+          </p>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export default SignUp
+

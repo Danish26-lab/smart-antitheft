@@ -1,0 +1,24 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "api/index.py",
+      "use": "@vercel/python",
+      "config": {
+        "maxLambdaSize": "50mb"
+      }
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "/api/index.py"
+    }
+  ],
+  "env": {
+    "FLASK_APP": "backend/app.py",
+    "PYTHONPATH": "backend",
+    "VERCEL": "1"
+  },
+  "buildCommand": "python backend/utils/copy_agent_files.py"
+}
