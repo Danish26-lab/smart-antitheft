@@ -783,7 +783,7 @@ def google_login():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@user_bp.route('/me', methods=['GET'])
+@user_bp.route('/me', methods=['GET', 'OPTIONS'])
 @jwt_required()
 def get_current_user():
     try:

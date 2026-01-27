@@ -1,4 +1,4 @@
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager
 import os
@@ -168,6 +168,16 @@ def root():
 @app.after_request
 def after_request(response):
     """Add CORS headers to all responses"""
+    # Handle OPTIONS preflight requests
+    if request.method == 'OPTIONS':
+        response.headers.add('Access-Control-Allow-Origin', 'https://antitheft-frontend-2.vercel.app')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+        response.headers.add('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS')
+        response.headers.add('Access-Control-Allow-Credentials', 'true')
+        response.headers.add('Access-Control-Max-Age', '3600')
+        return response, 200
+    
+    # Add CORS headers to all other responses
     response.headers.add('Access-Control-Allow-Origin', 'https://antitheft-frontend-2.vercel.app')
     response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
     response.headers.add('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS')

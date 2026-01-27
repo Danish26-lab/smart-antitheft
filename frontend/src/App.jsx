@@ -23,9 +23,11 @@ function App() {
     if (token) {
       // Verify token by fetching user info
       const apiUrl = import.meta.env.PROD 
-        ? (import.meta.env.VITE_API_URL || 'https://antitheft-backend.vercel.app')
+        ? (import.meta.env.VITE_API_URL || 'https://antitheft-backend-2.vercel.app')
         : (import.meta.env.VITE_API_URL || 'http://localhost:5000')
-      fetch(`${apiUrl}/api/me`, {
+      // Remove trailing slash to prevent double slashes
+      const cleanApiUrl = apiUrl.replace(/\/+$/, '')
+      fetch(`${cleanApiUrl}/api/me`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
