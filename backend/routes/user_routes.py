@@ -531,7 +531,7 @@ The Smart Anti-Theft System team
                 'details': 'If this problem persists, please contact support.'
             }), 500
 
-@user_bp.route('/login', methods=['POST'])
+@user_bp.route('/login', methods=['POST', 'OPTIONS'])
 def login():
     try:
         data = request.get_json()

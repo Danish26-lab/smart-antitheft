@@ -89,12 +89,14 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 # Initialize extensions
 # Configure CORS to allow preflight requests and handle redirects properly
+# IMPORTANT: Set automatic_options=True to handle OPTIONS automatically
 CORS(app, 
      origins=['https://antitheft-frontend-2.vercel.app', 'http://localhost:5173', 'http://localhost:3000'],
      methods=['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
      allow_headers=['Content-Type', 'Authorization'],
      supports_credentials=True,
-     max_age=3600)  # Cache preflight for 1 hour
+     max_age=3600,
+     automatic_options=True)  # Automatically handle OPTIONS requests
 jwt = JWTManager(app)
 db.init_app(app)
 

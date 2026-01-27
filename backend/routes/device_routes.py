@@ -1223,7 +1223,7 @@ def check_config_update(device_id):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@device_bp.route('/get_device_status/<device_id>', methods=['GET'])
+@device_bp.route('/get_device_status/<device_id>', methods=['GET', 'OPTIONS'])
 @jwt_required(optional=True)
 def get_device_status(device_id):
     """
