@@ -22,20 +22,13 @@ from urllib.parse import urlparse
 
 from register_device import register_with_token, read_token
 
-# Import hardware detection and fingerprinting
+# Import hardware detection (optional, used for richer registration but not required)
 try:
     from hardware_detection import detect_hardware
     HARDWARE_DETECTION_AVAILABLE = True
 except ImportError:
     HARDWARE_DETECTION_AVAILABLE = False
     logging.warning("Hardware detection module not available")
-
-try:
-    from fingerprint import generate_fingerprint, get_fingerprint_info
-    FINGERPRINT_AVAILABLE = True
-except ImportError:
-    FINGERPRINT_AVAILABLE = False
-    logging.warning("Fingerprint module not available")
 
 # Fix Windows console encoding for Unicode support
 if sys.platform == 'win32':
@@ -223,11 +216,12 @@ class DeviceAgent:
     
     def _attempt_auto_registration(self):
         """
-        Prey Project-style Agent-First Registration
+        Automatic device registration on startup (agent-first style).
         
-        Agent registers itself on startup using hardware fingerprint.
-        Device is created as UNOWNED and will be linked to user account later.
-        This happens BEFORE any user account exists - pure agent-first architecture.
+        1. If a device_id already exists in config.json, verify it with the backend.
+        2. If verification fails or no device_id exists yet, attempt to register the
+           device using the existing registration flow (with or without hardware info),
+           based on user_email in config.json.
         """
         try:
             # Check if device is already registered (has device_id in config)
@@ -255,107 +249,32 @@ class DeviceAgent:
                         logging.info(f"[AUTO-REG] Device {self.device_id} verified on server")
                         return True
                     else:
-                        logging.warning(f"[AUTO-REG] Device {self.device_id} not found on server, re-registering with agent-first method...")
-                        # Continue to agent-first registration below (creates UNOWNED device)
+                        logging.warning(f"[AUTO-REG] Device {self.device_id} not found on server, attempting re-registration...")
+                        # Fall through to registration logic below
                 except Exception as e:
-                    logging.warning(f"[AUTO-REG] Could not verify device on server: {e}, re-registering with agent-first method...")
-                    # Continue to agent-first registration below (creates UNOWNED device)
+                    logging.warning(f"[AUTO-REG] Could not verify device on server: {e}, attempting re-registration...")
+                    # Fall through to registration logic below
             
-            # Device not registered - perform agent-first registration
-            if not FINGERPRINT_AVAILABLE:
-                logging.error("[AUTO-REG] Fingerprint module not available! Cannot register device.")
+            # At this point, either no device_id exists or verification failed.
+            # Use the existing registration flow (which may include hardware detection),
+            # but without any hardware fingerprinting.
+            logging.info("[AUTO-REG] Attempting automatic registration with backend (no fingerprinting)...")
+            
+            # If user_email is configured, we can register the device directly to that user.
+            if not self.user_email:
+                logging.warning("[AUTO-REG] No user_email in config.json – skipping auto-registration")
                 return False
             
-            if not HARDWARE_DETECTION_AVAILABLE:
-                logging.error("[AUTO-REG] Hardware detection module not available! Cannot register device.")
-                return False
+            # Use the existing helper which already handles hardware detection when available.
+            self.register_with_server()
             
-            logging.info("[AUTO-REG] Starting agent-first registration (Prey Project style)...")
+            # After register_with_server, self.device_id should be set if successful.
+            if self.device_id:
+                logging.info(f"[AUTO-REG] Auto-registration completed: {self.device_id}")
+                return True
             
-            # Generate hardware fingerprint
-            fingerprint_hash = generate_fingerprint()
-            fingerprint_info = get_fingerprint_info()
-            logging.info(f"[AUTO-REG] Fingerprint generated: {fingerprint_hash[:16]}...")
-            logging.info(f"[AUTO-REG] Fingerprint quality: UUID={fingerprint_info['has_machine_uuid']}, Serial={fingerprint_info['has_serial']}, MACs={fingerprint_info['mac_count']}")
-            
-            # Detect full hardware information
-            logging.info("[AUTO-REG] Detecting hardware information...")
-            hardware_info = detect_hardware()
-            os_info = hardware_info.get("os_info", {})
-            system_info = hardware_info.get("system_info", {})
-            logging.info(f"[AUTO-REG] Hardware detected: {system_info.get('vendor', 'Unknown')} {system_info.get('model', 'Unknown')}")
-            
-            # Check if there's a preferred device_id in config
-            preferred_device_id = None
-            if CONFIG_FILE.exists():
-                try:
-                    with open(CONFIG_FILE, 'r') as f:
-                        config = json.load(f)
-                        preferred_device_id = config.get('device_id')
-                except:
-                    pass
-            
-            # Build registration payload
-            payload = {
-                "fingerprint_hash": fingerprint_hash,
-                "agent_version": "1.0.0",
-                "os_info": os_info,
-                "hardware_info": {
-                    "system_info": system_info,
-                    "bios_info": hardware_info.get("bios_info", {}),
-                    "motherboard_info": hardware_info.get("motherboard_info", {}),
-                    "cpu_info": hardware_info.get("cpu_info", {}),
-                    "ram_info": hardware_info.get("ram_info", {}),
-                    "network_info": hardware_info.get("network_info", {})
-                },
-                # NEW: pass configured user_email so backend can auto-link
-                # the UNOWNED device to this account when possible
-                "user_email": self.user_email,
-            }
-            
-            # Include preferred device_id if available
-            if preferred_device_id:
-                payload["preferred_device_id"] = preferred_device_id
-                logging.info(f"[AUTO-REG] Using preferred device_id: {preferred_device_id}")
-            
-            # Register with backend (no user account required)
-            logging.info("[AUTO-REG] Sending registration request to backend...")
-            response = requests.post(
-                f"{self.api_base_url}/agent/register",
-                json=payload,
-                timeout=15
-            )
-            
-            if response.status_code in (200, 201):
-                result = response.json()
-                device_id = result.get('device_id')
-                user_linked = result.get('user_linked', False)
-                
-                if device_id:
-                    # Save device_id to config
-                    try:
-                        config = {}
-                        if CONFIG_FILE.exists():
-                            with open(CONFIG_FILE, 'r') as f:
-                                config = json.load(f)
-                        config['device_id'] = device_id
-                        config['fingerprint_hash'] = fingerprint_hash
-                        with open(CONFIG_FILE, 'w') as f:
-                            json.dump(config, f, indent=2)
-                        logging.info(f"[AUTO-REG] Device registered: {device_id}")
-                        logging.info(f"[AUTO-REG] Device status: {'LINKED to user' if user_linked else 'UNOWNED (awaiting user link)'}")
-                        self.device_id = device_id
-                        return True
-                    except Exception as e:
-                        logging.error(f"[AUTO-REG] Could not save device_id to config: {e}")
-                        return False
-                else:
-                    logging.error("[AUTO-REG] No device_id in response!")
-                    return False
-            else:
-                error_msg = response.json().get('error', 'Unknown error') if response.content else 'No response'
-                logging.error(f"[AUTO-REG] Registration failed: {response.status_code} - {error_msg}")
-                return False
+            logging.error("[AUTO-REG] Auto-registration did not produce a valid device_id")
+            return False
                 
         except Exception as e:
             logging.error(f"[AUTO-REG] Registration error: {e}")
@@ -375,18 +294,9 @@ class DeviceAgent:
                     if self.path == '/device-info' or self.path == '/device-info/':
                         # Return device_id for browser discovery
                         device_id = agent_instance.device_id or 'not-registered'
-                        fingerprint_hash = None
-                        try:
-                            if CONFIG_FILE.exists():
-                                with open(CONFIG_FILE, 'r') as f:
-                                    config = json.load(f)
-                                fingerprint_hash = config.get('fingerprint_hash')
-                        except:
-                            pass
                         
                         response_data = {
                             'device_id': device_id,
-                            'fingerprint_hash': fingerprint_hash,
                             'status': 'registered' if device_id and device_id != 'not-registered' else 'pending'
                         }
                         
