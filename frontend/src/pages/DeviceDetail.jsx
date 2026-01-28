@@ -6,6 +6,7 @@ import LocationPicker from './LocationPicker'
 import FileBrowser from '../components/FileBrowser'
 import { getAccurateLocation } from '../utils/geolocation'
 import { formatDateTime, formatRelativeTime } from '../utils/dateFormatter'
+import { ensurePushSubscription } from '../utils/pushNotifications'
 
 const DeviceDetail = () => {
   const { deviceId } = useParams()
@@ -139,6 +140,13 @@ const DeviceDetail = () => {
       const response = await apiClient.get(`/api/get_device_status/${encodedDeviceId}?t=${Date.now()}`)
       
       if (response.data) {
+        console.log('[DeviceDetail] Fetched device data:', {
+          device_id: response.data.device_id,
+          last_lat: response.data.last_lat,
+          last_lng: response.data.last_lng,
+          last_location_update: response.data.last_location_update,
+          has_location: !!(response.data.last_lat && response.data.last_lng)
+        })
         setDevice(response.data)
       } else {
         setDevice(null)
@@ -783,6 +791,13 @@ const DeviceDetail = () => {
           <div className="flex-1 bg-blue-900 flex items-center justify-center relative overflow-hidden">
             {/* Always render the map so tiles are visible even before first location */}
             <div className="w-full h-full relative" style={{ zIndex: 1 }}>
+              {device && console.log('[DeviceDetail] Passing device to MapView:', {
+                device_id: device.device_id,
+                name: device.name,
+                last_lat: device.last_lat,
+                last_lng: device.last_lng,
+                has_location: !!(device.last_lat && device.last_lng)
+              })}
               <MapView
                 devices={device ? [device] : []}
                 center={
@@ -1081,7 +1096,7 @@ const DeviceDetail = () => {
 
       {/* Geofence Configuration Modal */}
       {showGeofenceModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[20000] p-4">
           <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-xl font-semibold text-gray-800">Configure Geofence Alarm</h3>
@@ -1299,6 +1314,15 @@ const DeviceDetail = () => {
                       saveButton.disabled = false
                       saveButton.textContent = originalText
                       
+                      // If user enabled geofence, also enable browser push notifications (best effort)
+                      if (enabled) {
+                        try {
+                          await ensurePushSubscription()
+                        } catch (e) {
+                          // ignore; email alerts still work
+                        }
+                      }
+
                       alert(`WiFi Geofence configured! Alarm will trigger when WiFi signal drops below ${signalThreshold}%`)
                       setShowGeofenceModal(false)
                       fetchDeviceDetails()
@@ -1328,7 +1352,7 @@ const DeviceDetail = () => {
 
       {/* Screen Lock Modal */}
       {showLockModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[20000] p-4">
           <div className="bg-white rounded-lg w-full max-w-lg shadow-xl overflow-hidden">
             {/* Blue Header */}
             <div className="bg-blue-600 text-white p-6 relative">
@@ -1443,7 +1467,7 @@ const DeviceDetail = () => {
 
       {/* Rename Modal */}
       {showRenameModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[20000]">
           <div className="bg-white rounded-lg p-6 w-96 max-w-full mx-4">
             <h3 className="text-xl font-semibold text-gray-800 mb-4">Rename Device</h3>
             <input
@@ -1597,7 +1621,7 @@ const DeviceDetail = () => {
 
       {/* Wipe Data Modal */}
       {showWipeModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[20000] p-4">
           <div className="bg-white rounded-lg w-full max-w-6xl h-[90vh] flex flex-col shadow-xl">
             {/* Header */}
             <div className="bg-red-600 text-white p-6 relative flex-shrink-0">
@@ -1702,7 +1726,7 @@ const DeviceDetail = () => {
 
       {/* Confirmation Modal */}
       {showConfirmModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[20000] p-4">
           <div className="bg-white rounded-lg w-full max-w-2xl shadow-xl">
             <div className="bg-red-600 text-white p-6">
               <h3 className="text-2xl font-bold">⚠️ Confirm Deletion</h3>

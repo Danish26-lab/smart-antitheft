@@ -1,14 +1,76 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from models import db, Device, ActivityLog, User, DeviceLinkToken
+from models import db, Device, ActivityLog, User, DeviceLinkToken, PushSubscription
 from datetime import datetime, timedelta
+import os
 from utils.geofence import check_geofence
 import secrets
 import math
 import logging
 import json
 
+from utils.push import send_push_notifications
+
 device_bp = Blueprint('device', __name__)
+
+
+@device_bp.route('/push/subscribe', methods=['POST'])
+@jwt_required()
+def push_subscribe():
+    """
+    Save a browser push subscription for the logged-in user.
+    Payload format (from browser PushManager):
+      { endpoint: "...", keys: { p256dh: "...", auth: "..." } }
+    """
+    try:
+        user_id = get_jwt_identity()
+        user_id = int(user_id) if isinstance(user_id, str) else user_id
+
+        data = request.get_json() or {}
+        endpoint = data.get('endpoint')
+        keys = data.get('keys') or {}
+        p256dh = keys.get('p256dh')
+        auth = keys.get('auth')
+
+        if not endpoint or not p256dh or not auth:
+            return jsonify({'error': 'Invalid subscription payload'}), 400
+
+        existing = PushSubscription.query.filter_by(endpoint=endpoint).first()
+        if existing:
+            # Re-attach to this user (in case user changed)
+            existing.user_id = user_id
+            existing.p256dh = p256dh
+            existing.auth = auth
+            db.session.commit()
+            return jsonify({'message': 'Subscription updated'}), 200
+
+        sub = PushSubscription(user_id=user_id, endpoint=endpoint, p256dh=p256dh, auth=auth)
+        db.session.add(sub)
+        db.session.commit()
+        return jsonify({'message': 'Subscription saved'}), 201
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+
+@device_bp.route('/push/unsubscribe', methods=['POST'])
+@jwt_required()
+def push_unsubscribe():
+    try:
+        data = request.get_json() or {}
+        endpoint = data.get('endpoint')
+        if not endpoint:
+            return jsonify({'error': 'endpoint is required'}), 400
+
+        existing = PushSubscription.query.filter_by(endpoint=endpoint).first()
+        if existing:
+            db.session.delete(existing)
+            db.session.commit()
+        return jsonify({'message': 'Unsubscribed'}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
 
 def calculate_distance_meters(lat1, lng1, lat2, lng2):
     """
@@ -1123,7 +1185,7 @@ def update_location():
             )
             db.session.add(alarm_log)
             
-            # Send notification to user
+            # Send notification to user (email + push)
             try:
                 # User model is imported at the top of this file.
                 # Only import the email helper here to avoid making User a local variable.
@@ -1142,9 +1204,28 @@ def update_location():
                             'signal_strength': breach_details.get('signal_strength'),
                             'signal_threshold': breach_details.get('signal_threshold'),
                             'reason': breach_details.get('reason', 'WiFi geofence breach detected')
-                        }
+                        },
+                        device_id=device.device_id
                     )
                     logging.info(f"Notification sent to {user.email} for WiFi geofence breach")
+
+                    # Push notification (best-effort)
+                    subs = PushSubscription.query.filter_by(user_id=user.id).all()
+                    subscription_payloads = [
+                        {
+                            "endpoint": s.endpoint,
+                            "keys": {"p256dh": s.p256dh, "auth": s.auth},
+                        }
+                        for s in subs
+                    ]
+                    if subscription_payloads:
+                        dashboard_url = os.getenv("FRONTEND_BASE_URL", "http://localhost:3000").rstrip("/") + f"/device/{device.device_id}"
+                        send_push_notifications(
+                            subscription_payloads,
+                            title="🚨 Anti-Theft Alert (WiFi Geofence)",
+                            body=f'{device.name} may have been moved/stolen (WiFi: {current_ssid}). Tap to open dashboard.',
+                            url=dashboard_url,
+                        )
             except Exception as e:
                 logging.error(f"Error sending notification: {e}")
         

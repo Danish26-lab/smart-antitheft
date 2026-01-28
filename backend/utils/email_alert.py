@@ -8,7 +8,7 @@ SMTP_SERVER = os.getenv('SMTP_SERVER', 'smtp.gmail.com')
 SMTP_PORT = int(os.getenv('SMTP_PORT', '587'))
 SMTP_USER = os.getenv('SMTP_USER', '')
 SMTP_PASSWORD = os.getenv('SMTP_PASSWORD', '')
-FRONTEND_BASE_URL = os.getenv('FRONTEND_BASE_URL', 'http://localhost:3000')
+FRONTEND_BASE_URL = os.getenv('FRONTEND_BASE_URL', 'http://localhost:3000').rstrip('/')
 
 def send_alert_email(recipient, subject, body, html_body=None):
     """
@@ -71,9 +71,10 @@ Time: {datetime.now().strftime('%d-%b-%Y %H:%M')}
     
     return send_alert_email(recipient, subject, body)
 
-def send_geofence_alert(recipient, device_name, location):
+def send_geofence_alert(recipient, device_name, location, device_id=None):
     """Send geofence breach alert"""
     breach_type = location.get('breach_type', 'Geofence')
+    deep_link = f"{FRONTEND_BASE_URL}/device/{device_id}" if device_id else FRONTEND_BASE_URL
     
     if breach_type == 'WiFi Geofence':
         signal_strength = location.get('signal_strength')
@@ -106,7 +107,7 @@ Time: {datetime.now().strftime('%d-%b-%Y %H:%M:%S')}
 1. Check if you moved the device yourself
 2. If not, your device may have been stolen
 3. Open your Smart Anti-Theft dashboard to track and secure the device:
-   {FRONTEND_BASE_URL}
+   {deep_link}
 4. From the dashboard, select the device and use the Screen lock action to immediately lock the screen
 5. Optionally trigger the remote alarm or wipe actions if necessary
 
@@ -118,6 +119,8 @@ If this was not you, please secure your account immediately!
 
 Current Location: {location.get('lat')}, {location.get('lng')}
 Time: {datetime.now().strftime('%d-%b-%Y %H:%M')}
+
+Open dashboard: {deep_link}
 
 Please verify this is expected activity.
 """
