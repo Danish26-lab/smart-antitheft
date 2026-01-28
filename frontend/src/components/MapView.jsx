@@ -51,16 +51,18 @@ const MapView = ({ devices, center = { lat: 3.139, lng: 101.686 }, zoom = 10, ge
     
     // Add new markers
     devices.forEach(device => {
-      console.log(`[MapView] Processing device for marker:`, {
-        name: device.name,
-        device_id: device.device_id,
-        last_lat: device.last_lat,
-        last_lng: device.last_lng,
-        last_lat_type: typeof device.last_lat,
-        last_lng_type: typeof device.last_lng,
-        has_coordinates: !!(device.last_lat && device.last_lng),
-        device_keys: Object.keys(device)
-      })
+      if (import.meta.env.DEV) {
+        console.log(`[MapView] Processing device for marker:`, {
+          name: device.name,
+          device_id: device.device_id,
+          last_lat: device.last_lat,
+          last_lng: device.last_lng,
+          last_lat_type: typeof device.last_lat,
+          last_lng_type: typeof device.last_lng,
+          has_coordinates: !!(device.last_lat && device.last_lng),
+          device_keys: Object.keys(device)
+        })
+      }
       
       // Check for alternative location field names (handle various data formats)
       let lat = device.last_lat ?? device.lat ?? device.location?.lat
@@ -87,11 +89,13 @@ const MapView = ({ devices, center = { lat: 3.139, lng: 101.686 }, zoom = 10, ge
         }
         
         // Debug logging to verify coordinates
-        console.log(`[MapView] Device ${device.name} coordinates:`, { 
-          raw: { lat, lng },
-          parsed: { lat: latNum, lng: lngNum },
-          isValid: !isNaN(latNum) && !isNaN(lngNum) && latNum >= -90 && latNum <= 90 && lngNum >= -180 && lngNum <= 180
-        })
+        if (import.meta.env.DEV) {
+          console.log(`[MapView] Device ${device.name} coordinates:`, { 
+            raw: { lat, lng },
+            parsed: { lat: latNum, lng: lngNum },
+            isValid: !isNaN(latNum) && !isNaN(lngNum) && latNum >= -90 && latNum <= 90 && lngNum >= -180 && lngNum <= 180
+          })
+        }
         
         // CRITICAL: Validate and fix swapped coordinates globally
         // Latitude must be between -90 and 90, Longitude must be between -180 and 180
@@ -241,18 +245,18 @@ const MapView = ({ devices, center = { lat: 3.139, lng: 101.686 }, zoom = 10, ge
         const lngDiff = Math.abs(currentCenter.lng - mapCenter.lng)
         // Only update if difference is significant (more than ~100m)
         if (latDiff > 0.001 || lngDiff > 0.001) {
-          console.log(`[MapView] Centering map on device:`, mapCenter)
+          if (import.meta.env.DEV) console.log(`[MapView] Centering map on device:`, mapCenter)
           map.setView([mapCenter.lat, mapCenter.lng], map.getZoom())
         }
       } else {
-        console.log(`[MapView] Setting initial map center:`, mapCenter)
+        if (import.meta.env.DEV) console.log(`[MapView] Setting initial map center:`, mapCenter)
         map.setView([mapCenter.lat, mapCenter.lng], map.getZoom())
       }
     }
     
     // If markers were created, ensure they're visible
     if (markersRef.current.length > 0) {
-      console.log(`[MapView] Created ${markersRef.current.length} marker(s)`)
+      if (import.meta.env.DEV) console.log(`[MapView] Created ${markersRef.current.length} marker(s)`)
       // Fit map bounds to show all markers if multiple devices
       if (markersRef.current.length > 1) {
         const bounds = L.latLngBounds([])
@@ -263,7 +267,7 @@ const MapView = ({ devices, center = { lat: 3.139, lng: 101.686 }, zoom = 10, ge
       } else if (markersRef.current.length === 1) {
         // Single marker: center on it with appropriate zoom and ensure it's visible
         const markerPos = markersRef.current[0].getLatLng()
-        console.log(`[MapView] Centering map on marker at:`, markerPos)
+        if (import.meta.env.DEV) console.log(`[MapView] Centering map on marker at:`, markerPos)
         // Use zoom level 15 for good detail (street level)
         map.setView(markerPos, 15)
         // Open popup automatically to make marker obvious

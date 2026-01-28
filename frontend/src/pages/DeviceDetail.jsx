@@ -140,13 +140,15 @@ const DeviceDetail = () => {
       const response = await apiClient.get(`/api/get_device_status/${encodedDeviceId}?t=${Date.now()}`)
       
       if (response.data) {
-        console.log('[DeviceDetail] Fetched device data:', {
-          device_id: response.data.device_id,
-          last_lat: response.data.last_lat,
-          last_lng: response.data.last_lng,
-          last_location_update: response.data.last_location_update,
-          has_location: !!(response.data.last_lat && response.data.last_lng)
-        })
+        if (import.meta.env.DEV) {
+          console.log('[DeviceDetail] Fetched device data:', {
+            device_id: response.data.device_id,
+            last_lat: response.data.last_lat,
+            last_lng: response.data.last_lng,
+            last_location_update: response.data.last_location_update,
+            has_location: !!(response.data.last_lat && response.data.last_lng)
+          })
+        }
         setDevice(response.data)
       } else {
         setDevice(null)
@@ -791,7 +793,7 @@ const DeviceDetail = () => {
           <div className="flex-1 bg-blue-900 flex items-center justify-center relative overflow-hidden">
             {/* Always render the map so tiles are visible even before first location */}
             <div className="w-full h-full relative" style={{ zIndex: 1 }}>
-              {device && console.log('[DeviceDetail] Passing device to MapView:', {
+              {import.meta.env.DEV && device && console.log('[DeviceDetail] Passing device to MapView:', {
                 device_id: device.device_id,
                 name: device.name,
                 last_lat: device.last_lat,
