@@ -2,8 +2,6 @@ import os
 import logging
 from typing import Optional, Dict, Any, List
 
-from pywebpush import webpush, WebPushException
-
 
 VAPID_PUBLIC_KEY = os.getenv("VAPID_PUBLIC_KEY", "")
 VAPID_PRIVATE_KEY = os.getenv("VAPID_PRIVATE_KEY", "")
@@ -30,6 +28,13 @@ def send_push_notifications(
     """
     if not _can_send():
         logging.warning("[PUSH] VAPID keys not configured; skipping push notifications")
+        return {"sent": 0, "failed": 0}
+
+    # Import lazily so backend can boot even if dependency missing
+    try:
+        from pywebpush import webpush, WebPushException  # type: ignore
+    except Exception as e:
+        logging.warning(f"[PUSH] pywebpush not installed; skipping push notifications ({e})")
         return {"sent": 0, "failed": 0}
 
     payload: Dict[str, Any] = {"title": title, "body": body}
