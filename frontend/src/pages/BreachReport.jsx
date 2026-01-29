@@ -65,7 +65,7 @@ const BreachReport = () => {
   }
 
   if (loading) {
-    return <div className="text-center py-8 text-slate-400">Loading breach reports...</div>
+    return <div className="text-center py-8 text-white">Loading breach reports...</div>
   }
 
   return (
@@ -83,8 +83,8 @@ const BreachReport = () => {
 
       {reports.length === 0 ? (
         <div className="bg-slate-800/80 border border-slate-700/50 rounded-xl shadow-lg p-8 text-center backdrop-blur">
-          <p className="text-slate-300 text-lg">✅ No breaches detected!</p>
-          <p className="text-slate-500 text-sm mt-2">Your credentials appear to be safe.</p>
+          <p className="text-white text-lg">✅ No breaches detected!</p>
+          <p className="text-slate-200 text-sm mt-2">Your credentials appear to be safe.</p>
         </div>
       ) : (
         <div className="space-y-4">
@@ -95,8 +95,8 @@ const BreachReport = () => {
                   <h3 className="text-lg sm:text-xl font-semibold text-white mb-2 break-words">
                     {report.breach_name}
                   </h3>
-                  <p className="text-xs sm:text-sm text-slate-400 mb-2 break-words">{report.description || 'No description available'}</p>
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-4 space-y-1 sm:space-y-0 text-xs sm:text-sm text-slate-500">
+                  <p className="text-xs sm:text-sm text-white mb-2 break-words">{report.description || 'No description available'}</p>
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-4 space-y-1 sm:space-y-0 text-xs sm:text-sm text-white">
                     <span className="truncate">📧 {report.email}</span>
                     <span>📅 {new Date(report.date_detected).toLocaleDateString()}</span>
                   </div>

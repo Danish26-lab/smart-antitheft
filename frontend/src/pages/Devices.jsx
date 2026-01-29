@@ -374,7 +374,7 @@ const Devices = () => {
   }
 
   if (loading) {
-    return <div className="text-center py-8">Loading devices...</div>
+    return <div className="text-center py-8 text-white">Loading devices...</div>
   }
 
   return (
@@ -396,21 +396,21 @@ const Devices = () => {
             <div className="flex items-center space-x-1 sm:space-x-2 bg-slate-700/50 rounded-lg p-1">
               <button
                 onClick={() => setViewMode('grid')}
-                className={`px-2 sm:px-3 py-1.5 sm:py-1 rounded text-sm sm:text-base touch-manipulation text-slate-300 ${viewMode === 'grid' ? 'bg-slate-600/50 shadow-sm text-white' : ''}`}
+                className={`px-2 sm:px-3 py-1.5 sm:py-1 rounded text-sm sm:text-base touch-manipulation text-white ${viewMode === 'grid' ? 'bg-slate-600/50 shadow-sm text-white' : ''}`}
                 title="Grid view"
               >
                 ⊞
               </button>
               <button
                 onClick={() => setViewMode('list')}
-                className={`px-2 sm:px-3 py-1.5 sm:py-1 rounded text-sm sm:text-base touch-manipulation text-slate-300 ${viewMode === 'list' ? 'bg-slate-600/50 shadow-sm text-white' : ''}`}
+                className={`px-2 sm:px-3 py-1.5 sm:py-1 rounded text-sm sm:text-base touch-manipulation text-white ${viewMode === 'list' ? 'bg-slate-600/50 shadow-sm text-white' : ''}`}
                 title="List view"
               >
                 ☰
               </button>
               <button
                 onClick={() => setShowFilters(!showFilters)}
-                className={`px-2 sm:px-3 py-1.5 sm:py-1 rounded text-sm sm:text-base touch-manipulation text-slate-300 ${showFilters ? 'bg-slate-600/50 shadow-sm text-white' : ''}`}
+                className={`px-2 sm:px-3 py-1.5 sm:py-1 rounded text-sm sm:text-base touch-manipulation text-white ${showFilters ? 'bg-slate-600/50 shadow-sm text-white' : ''}`}
                 title="Filters"
               >
                 🌐
@@ -418,7 +418,7 @@ const Devices = () => {
             </div>
             <button
               onClick={exportToCSV}
-              className="px-3 sm:px-4 py-2 bg-slate-700/50 hover:bg-slate-600/50 rounded-lg transition-colors text-slate-300 text-xs sm:text-sm touch-manipulation whitespace-nowrap"
+              className="px-3 sm:px-4 py-2 bg-slate-700/50 hover:bg-slate-600/50 rounded-lg transition-colors text-white text-xs sm:text-sm touch-manipulation whitespace-nowrap"
             >
               <span className="hidden sm:inline">EXPORT CSV</span>
               <span className="sm:hidden">CSV</span>
@@ -433,7 +433,7 @@ const Devices = () => {
           </div>
         </div>
 
-        <div className="text-xs sm:text-sm text-slate-400">
+        <div className="text-xs sm:text-sm text-white">
           SHOWING {filteredDevices.length} / {devices.length} DEVICES
         </div>
       </div>
@@ -450,11 +450,11 @@ const Devices = () => {
             {/* Filters panel */}
             <div className="fixed lg:static inset-y-0 left-0 z-50 lg:z-auto w-80 lg:w-64 bg-slate-800 border-r border-slate-700/50 rounded-lg lg:rounded-lg shadow-lg lg:shadow-sm p-4 h-full lg:h-fit overflow-y-auto lg:overflow-visible transform transition-transform duration-300 ease-in-out lg:transform-none">
             <div className="mb-4">
-              <h3 className="font-semibold text-gray-700 mb-2">
+              <h3 className="font-semibold text-white mb-2">
                 Selected Filters ({activeFiltersCount})
               </h3>
               {activeFiltersCount === 0 && (
-                <p className="text-sm text-gray-500">No filters applied</p>
+                <p className="text-sm text-white">No filters applied</p>
               )}
               {filters.labels.map(label => (
                 <span
@@ -488,8 +488,8 @@ const Devices = () => {
 
             <div className="mb-4">
               <div className="flex items-center justify-between mb-2">
-                <h4 className="font-medium text-gray-700">Labels</h4>
-                <button className="text-xs text-gray-500 hover:text-gray-700">HIDE</button>
+                <h4 className="font-medium text-white">Labels</h4>
+                <button className="text-xs text-white hover:text-white">HIDE</button>
               </div>
               <div className="space-y-1">
                 {availableLabels.map(label => {
@@ -500,7 +500,7 @@ const Devices = () => {
                       key={label}
                       onClick={() => toggleLabelFilter(label)}
                       className={`w-full text-left px-2 py-1 rounded text-sm flex items-center justify-between ${
-                        isActive ? 'bg-blue-50 text-blue-700' : 'hover:bg-gray-50'
+                        isActive ? 'bg-indigo-500/20 text-white' : 'hover:bg-slate-700/50'
                       }`}
                     >
                       <span>[{count}] {label}</span>
@@ -512,12 +512,12 @@ const Devices = () => {
             </div>
 
             <div className="mb-4">
-              <h4 className="font-medium text-gray-700 mb-2">Device Attributes</h4>
+              <h4 className="font-medium text-white mb-2">Device Attributes</h4>
               <div className="space-y-1">
                 {deviceAttributes.map(attr => (
                   <button
                     key={attr.name}
-                    className="w-full text-left px-2 py-1 rounded text-sm hover:bg-gray-50"
+                    className="w-full text-left px-2 py-1 rounded text-sm hover:bg-slate-700/50"
                   >
                     [{attr.count}] - {attr.name}
                   </button>
@@ -526,7 +526,7 @@ const Devices = () => {
             </div>
 
             <div>
-              <h4 className="font-medium text-gray-700 mb-2">Smart Filters</h4>
+              <h4 className="font-medium text-white mb-2">Smart Filters</h4>
               <div className="space-y-1">
                 {['Not Missing', 'Missing', 'Connected', 'Disconnected', 'Seen in the last 24 hours', 'Seen in the last 7 days', 'Seen in the last 30 days'].map(filter => {
                   const isActive = filters.smartFilters.includes(filter)
@@ -535,7 +535,7 @@ const Devices = () => {
                       key={filter}
                       onClick={() => toggleSmartFilter(filter)}
                       className={`w-full text-left px-2 py-1 rounded text-sm ${
-                        isActive ? 'bg-blue-50 text-blue-700 font-medium' : 'hover:bg-gray-50'
+                        isActive ? 'bg-indigo-500/20 text-white font-medium' : 'hover:bg-slate-700/50'
                       }`}
                     >
                       {filter}
@@ -547,7 +547,7 @@ const Devices = () => {
             {/* Close button for mobile */}
             <button
               onClick={() => setShowFilters(false)}
-              className="lg:hidden absolute top-4 right-4 p-2 rounded-md text-gray-500 hover:text-gray-700 hover:bg-gray-100"
+              className="lg:hidden absolute top-4 right-4 p-2 rounded-md text-white hover:text-white hover:bg-slate-600/50"
               aria-label="Close filters"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -566,17 +566,17 @@ const Devices = () => {
               <div className="block lg:hidden">
                 {/* Mobile Card View */}
                 {loading ? (
-                  <div className="p-8 text-center text-gray-500">
+                  <div className="p-8 text-center text-white">
                     <div className="flex items-center justify-center space-x-2">
                       <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
                       <span>Loading devices...</span>
                     </div>
                   </div>
                 ) : filteredDevices.length === 0 && devices.length === 0 ? (
-                  <div className="p-8 text-center text-gray-500">
+                  <div className="p-8 text-center text-white">
                     <div className="space-y-3">
                       <p className="text-lg font-semibold">No devices registered</p>
-                      <p className="text-sm text-gray-400">
+                      <p className="text-sm text-white">
                         Register a device by running the device agent on your device
                       </p>
                       <button
@@ -588,10 +588,10 @@ const Devices = () => {
                     </div>
                   </div>
                 ) : filteredDevices.length === 0 ? (
-                  <div className="p-8 text-center text-gray-500">
+                  <div className="p-8 text-center text-white">
                     <div className="space-y-2">
                       <p>No devices match your current filters</p>
-                      <p className="text-sm text-gray-400">
+                      <p className="text-sm text-white">
                         Try clearing filters or search query
                       </p>
                       <button
@@ -599,16 +599,16 @@ const Devices = () => {
                           setSearchQuery('')
                           setFilters({ labels: [], attributes: [], smartFilters: [] })
                         }}
-                        className="mt-2 px-3 py-1 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded text-xs transition-colors touch-manipulation"
+                        className="mt-2 px-3 py-1 bg-gray-200 hover:bg-gray-300 text-white rounded text-xs transition-colors touch-manipulation"
                       >
                         Clear All Filters
                       </button>
                     </div>
                   </div>
                 ) : (
-                  <div className="divide-y divide-gray-200">
+                  <div className="divide-y divide-slate-600/50">
                     {filteredDevices.map(device => (
-                      <div key={device.id} className="p-4 hover:bg-gray-50">
+                      <div key={device.id} className="p-4 hover:bg-slate-700/50">
                         <div className="flex items-start justify-between mb-3">
                           <div className="flex items-center space-x-3 flex-1 min-w-0">
                             <input
@@ -624,20 +624,20 @@ const Devices = () => {
                               <div className={`w-3 h-3 rounded-full flex-shrink-0 ${getStatusDot(device)}`}></div>
                               <span className="text-xl flex-shrink-0">{getDeviceIcon(device.device_type)}</span>
                               <div className="min-w-0 flex-1">
-                                <div className="font-medium text-gray-800 truncate">{device.name}</div>
-                                <div className="text-xs text-gray-500 truncate">{device.device_id}</div>
+                                <div className="font-medium text-white truncate">{device.name}</div>
+                                <div className="text-xs text-white truncate">{device.device_id}</div>
                               </div>
                             </div>
                           </div>
                           <span className={`px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap ml-2 ${
-                            device.status === 'active' ? 'bg-green-100 text-green-800' :
-                            device.is_missing ? 'bg-red-100 text-red-800' :
-                            'bg-gray-100 text-gray-800'
+                            device.status === 'active' ? 'bg-emerald-500/20 text-emerald-300' :
+                            device.is_missing ? 'bg-red-500/20 text-red-300' :
+                            'bg-slate-500/20 text-white'
                           }`}>
                             {device.is_missing ? 'Missing' : device.status}
                           </span>
                         </div>
-                        <div className="grid grid-cols-2 gap-2 text-xs sm:text-sm text-gray-600 mb-3">
+                        <div className="grid grid-cols-2 gap-2 text-xs sm:text-sm text-white mb-3">
                           <div>
                             <span className="font-medium">OS:</span> {device.os_version || device.os_name || device.os || device.device_type || 'N/A'}
                           </div>
@@ -731,7 +731,7 @@ const Devices = () => {
                   <tbody>
                     {loading ? (
                       <tr>
-                        <td colSpan="8" className="px-4 py-8 text-center text-gray-500">
+                        <td colSpan="8" className="px-4 py-8 text-center text-white">
                           <div className="flex items-center justify-center space-x-2">
                             <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
                             <span>Loading devices...</span>
@@ -740,10 +740,10 @@ const Devices = () => {
                       </tr>
                     ) : filteredDevices.length === 0 && devices.length === 0 ? (
                       <tr>
-                        <td colSpan="8" className="px-4 py-8 text-center text-gray-500">
+                        <td colSpan="8" className="px-4 py-8 text-center text-white">
                           <div className="space-y-3">
                             <p className="text-lg font-semibold">No devices registered</p>
-                            <p className="text-sm text-gray-400">
+                            <p className="text-sm text-white">
                               Register a device by running the device agent on your device
                             </p>
                             <button
@@ -757,10 +757,10 @@ const Devices = () => {
                       </tr>
                     ) : filteredDevices.length === 0 ? (
                       <tr>
-                        <td colSpan="8" className="px-4 py-8 text-center text-gray-500">
+                        <td colSpan="8" className="px-4 py-8 text-center text-white">
                           <div className="space-y-2">
                             <p>No devices match your current filters</p>
-                            <p className="text-sm text-gray-400">
+                            <p className="text-sm text-white">
                               Try clearing filters or search query
                             </p>
                             <button
@@ -768,7 +768,7 @@ const Devices = () => {
                                 setSearchQuery('')
                                 setFilters({ labels: [], attributes: [], smartFilters: [] })
                               }}
-                              className="mt-2 px-3 py-1 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded text-xs transition-colors"
+                              className="mt-2 px-3 py-1 bg-gray-200 hover:bg-gray-300 text-white rounded text-xs transition-colors"
                             >
                               Clear All Filters
                             </button>
@@ -777,7 +777,7 @@ const Devices = () => {
                       </tr>
                     ) : (
                       filteredDevices.map(device => (
-                        <tr key={device.id} className="border-b border-gray-200 hover:bg-gray-50">
+                        <tr key={device.id} className="border-b border-slate-600/50 hover:bg-slate-700/50 text-white">
                           <td className="px-4 py-3">
                             <input
                               type="checkbox"
@@ -794,12 +794,12 @@ const Devices = () => {
                               <div className={`w-3 h-3 rounded-full ${getStatusDot(device)}`}></div>
                               <span className="text-xl">{getDeviceIcon(device.device_type)}</span>
                               <div>
-                                <div className="font-medium text-gray-800">{device.name}</div>
+                                <div className="font-medium text-white">{device.name}</div>
                                 {device.device_type && (
-                                  <div className="text-xs text-gray-500">{device.device_type}</div>
+                                  <div className="text-xs text-white">{device.device_type}</div>
                                 )}
                                 {device.device_type && (
-                                  <span className="inline-block mt-1 px-2 py-0.5 bg-gray-100 text-gray-600 rounded text-xs">
+                                  <span className="inline-block mt-1 px-2 py-0.5 bg-slate-600/50 text-white rounded text-xs">
                                     {device.device_type}
                                   </span>
                                 )}
@@ -812,23 +812,23 @@ const Devices = () => {
                               {(device.os_name || device.os_version || device.os || '').toLowerCase().includes('mac') && '🍎'}
                               {(device.os_name || device.os_version || device.os || '').toLowerCase().includes('linux') && '🐧'}
                               {(device.os_name || device.os_version || device.os || '').toLowerCase().includes('iphone') || (device.os_name || device.os_version || device.os || '').toLowerCase().includes('ios') && '📱'}
-                              <span className="text-sm">{device.os_version || device.os_name || device.os || device.device_type || 'N/A'}</span>
+                              <span className="text-sm text-white">{device.os_version || device.os_name || device.os || device.device_type || 'N/A'}</span>
                             </div>
                           </td>
-                          <td className="px-4 py-3 text-sm text-gray-600">{device.device_id}</td>
-                          <td className="px-4 py-3 text-sm text-gray-600">
+                          <td className="px-4 py-3 text-sm text-white">{device.device_id}</td>
+                          <td className="px-4 py-3 text-sm text-white">
                             {device.created_at ? new Date(device.created_at).toLocaleDateString() : 'N/A'}
                           </td>
                           <td className="px-4 py-3">
                             <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                              device.status === 'active' ? 'bg-green-100 text-green-800' :
-                              device.is_missing ? 'bg-red-100 text-red-800' :
-                              'bg-gray-100 text-gray-800'
+                              device.status === 'active' ? 'bg-emerald-500/20 text-emerald-300' :
+                              device.is_missing ? 'bg-red-500/20 text-red-300' :
+                              'bg-slate-500/20 text-white'
                             }`}>
                               {device.is_missing ? 'Missing' : device.status}
                             </span>
                           </td>
-                          <td className="px-4 py-3 text-sm text-gray-600">
+                          <td className="px-4 py-3 text-sm text-white">
                             {formatLastSeen(device.last_seen)}
                           </td>
                           <td className="px-4 py-3">
@@ -872,7 +872,7 @@ const Devices = () => {
               {filteredDevices.map(device => (
                 <div 
                   key={device.id} 
-                  className="bg-white rounded-lg shadow-md p-4 hover:shadow-lg transition-shadow cursor-pointer"
+                  className="bg-slate-800/80 border border-slate-700/50 rounded-lg shadow-md p-4 hover:shadow-lg hover:border-slate-600/50 transition-all cursor-pointer"
                   onClick={() => navigate(`/device/${device.device_id}`)}
                 >
                   <div className="flex items-start justify-between mb-3">
@@ -891,14 +891,14 @@ const Devices = () => {
                       className="rounded"
                     />
                   </div>
-                  <h3 className="font-semibold text-gray-800 mb-1">{device.name}</h3>
-                  <p className="text-sm text-gray-500 mb-2">{device.device_type || 'Unknown'}</p>
+                  <h3 className="font-semibold text-white mb-1">{device.name}</h3>
+                  <p className="text-sm text-white mb-2">{device.device_type || 'Unknown'}</p>
                   {device.device_type && (
-                    <span className="inline-block px-2 py-0.5 bg-gray-100 text-gray-600 rounded text-xs mb-2">
+                    <span className="inline-block px-2 py-0.5 bg-slate-600/50 text-white rounded text-xs mb-2">
                       {device.device_type}
                     </span>
                   )}
-                  <div className="space-y-1 text-sm text-gray-600 mb-3">
+                  <div className="space-y-1 text-sm text-white mb-3">
                     <div>Status: <span className="font-medium">{device.status}</span></div>
                     <div>Last seen: {formatLastSeen(device.last_seen)}</div>
                     {device.last_lat && device.last_lng && (
@@ -953,7 +953,7 @@ const Devices = () => {
                   setShowNewDeviceModal(false)
                   setNewDevice({ name: '', device_id: '', device_type: 'laptop', connection_key: '' })
                 }}
-                className="text-gray-500 hover:text-gray-700 text-2xl font-bold"
+                className="text-white hover:text-white text-2xl font-bold"
               >
                 ×
               </button>
@@ -967,7 +967,7 @@ const Devices = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-white mb-2">
                   Device Name *
                 </label>
                 <input
@@ -980,7 +980,7 @@ const Devices = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-white mb-2">
                   Device ID *
                 </label>
                 <input
@@ -990,13 +990,13 @@ const Devices = () => {
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   placeholder="e.g., my-iphone-13, work-laptop-01"
                 />
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-white mt-1">
                   Unique identifier (lowercase, no spaces). This will be used by the device agent to connect.
                 </p>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-white mb-2">
                   Device Type *
                 </label>
                 <select
@@ -1014,15 +1014,15 @@ const Devices = () => {
               </div>
 
               <div className="border-t pt-4 mt-4">
-                <h4 className="font-medium text-gray-700 mb-3">After Creating Device:</h4>
-                <ol className="list-decimal list-inside space-y-2 text-sm text-gray-600">
+                <h4 className="font-medium text-white mb-3">After Creating Device:</h4>
+                <ol className="list-decimal list-inside space-y-2 text-sm text-white">
                   <li>Copy the <strong>Connection Key</strong> that will be shown after creation</li>
                   <li>On your physical device, run the registration script with this key:
-                    <div className="bg-gray-100 p-2 rounded mt-1 font-mono text-xs">
+                    <div className="bg-slate-700/50 text-white p-2 rounded mt-1 font-mono text-xs">
                       python register_device.py --connect-key YOUR_KEY
                     </div>
                   </li>
-                  <li>Or edit the agent config file and add: <code className="bg-gray-100 px-1 rounded">"connection_key": "YOUR_KEY"</code></li>
+                  <li>Or edit the agent config file and add: <code className="bg-slate-700/50 text-white px-1 rounded">"connection_key": "YOUR_KEY"</code></li>
                 </ol>
               </div>
             </div>
@@ -1033,7 +1033,7 @@ const Devices = () => {
                   setShowNewDeviceModal(false)
                   setNewDevice({ name: '', device_id: '', device_type: 'laptop', connection_key: '' })
                 }}
-                className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                className="px-4 py-2 text-white hover:bg-slate-600/50 rounded-lg transition-colors"
               >
                 Cancel
               </button>
@@ -1083,14 +1083,14 @@ const Devices = () => {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-slate-800 border border-slate-700/50 rounded-xl p-6 w-full max-w-md shadow-xl">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-xl font-semibold text-gray-800">Scan QR Code to Connect</h3>
+              <h3 className="text-xl font-semibold text-white">Scan QR Code to Connect</h3>
               <button
                 onClick={() => {
                   setShowQRCodeModal(false)
                   setConnectionKey('')
                   setCreatedDeviceName('')
                 }}
-                className="text-gray-500 hover:text-gray-700 text-2xl font-bold"
+                className="text-white hover:text-white text-2xl font-bold"
               >
                 ×
               </button>
@@ -1116,8 +1116,8 @@ const Devices = () => {
               </div>
 
               <div className="space-y-2">
-                <p className="text-sm font-medium text-gray-700">Connection Key:</p>
-                <div className="bg-gray-100 p-3 rounded-lg">
+                <p className="text-sm font-medium text-white">Connection Key:</p>
+                <div className="bg-slate-700/50 text-white p-3 rounded-lg">
                   <p className="font-mono text-xs break-all select-all">{connectionKey}</p>
                 </div>
                 <button
@@ -1144,7 +1144,7 @@ const Devices = () => {
               </div>
 
               <div className="pt-4 border-t">
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-white">
                   This key is one-time use. Keep it secure!
                 </p>
               </div>

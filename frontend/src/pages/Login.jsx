@@ -49,7 +49,7 @@ const Login = ({ onLogin }) => {
       <div className="bg-slate-800/80 backdrop-blur-xl rounded-2xl shadow-2xl shadow-black/50 border border-slate-700/50 p-4 sm:p-6 md:p-8 w-full max-w-md">
         <div className="text-center mb-6 sm:mb-8">
           <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">🛡️ Anti-Theft System</h1>
-          <p className="text-sm sm:text-base text-slate-400">Sign in to your account</p>
+          <p className="text-sm sm:text-base text-white">Sign in to your account</p>
         </div>
 
         {error && (
@@ -60,7 +60,7 @@ const Login = ({ onLogin }) => {
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
-            <label htmlFor="email" className="block text-sm font-medium text-slate-300 mb-2">
+            <label htmlFor="email" className="block text-sm font-medium text-white mb-2">
               Email Address
             </label>
             <input
@@ -75,7 +75,7 @@ const Login = ({ onLogin }) => {
           </div>
 
           <div>
-            <label htmlFor="password" className="block text-sm font-medium text-slate-300 mb-2">
+            <label htmlFor="password" className="block text-sm font-medium text-white mb-2">
               Password
             </label>
             <input
@@ -100,7 +100,7 @@ const Login = ({ onLogin }) => {
 
         <div className="mt-6 space-y-3">
           <div className="text-center">
-            <p className="text-sm text-slate-400">
+            <p className="text-sm text-white">
               Don't have an account?{' '}
               <Link to="/signup" className="text-indigo-400 hover:text-indigo-300 font-medium transition-colors">
                 Sign up

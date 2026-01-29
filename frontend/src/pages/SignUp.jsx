@@ -169,7 +169,7 @@ const SignUp = ({ onLogin }) => {
       <div className="bg-slate-800/80 backdrop-blur-xl rounded-2xl shadow-2xl shadow-black/50 border border-slate-700/50 p-4 sm:p-6 md:p-8 w-full max-w-md">
         <div className="text-center mb-6 sm:mb-8">
           <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">🛡️ Anti-Theft System</h1>
-          <p className="text-sm sm:text-base text-slate-400">Create your account</p>
+          <p className="text-sm sm:text-base text-white">Create your account</p>
         </div>
 
         {error && (
@@ -180,7 +180,7 @@ const SignUp = ({ onLogin }) => {
 
         <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
           <div>
-            <label htmlFor="name" className="block text-sm font-medium text-slate-300 mb-2">
+            <label htmlFor="name" className="block text-sm font-medium text-white mb-2">
               Full Name
             </label>
             <input
@@ -194,7 +194,7 @@ const SignUp = ({ onLogin }) => {
           </div>
 
           <div>
-            <label htmlFor="email" className="block text-sm font-medium text-slate-300 mb-2">
+            <label htmlFor="email" className="block text-sm font-medium text-white mb-2">
               Email Address
             </label>
             <input
@@ -209,7 +209,7 @@ const SignUp = ({ onLogin }) => {
           </div>
 
           <div>
-            <label htmlFor="password" className="block text-sm font-medium text-slate-300 mb-2">
+            <label htmlFor="password" className="block text-sm font-medium text-white mb-2">
               Password
             </label>
             <input
@@ -222,11 +222,11 @@ const SignUp = ({ onLogin }) => {
               className="w-full px-4 py-3 text-base bg-slate-900/50 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 touch-manipulation"
               placeholder="At least 6 characters"
             />
-            <p className="text-xs text-slate-500 mt-1">Must be at least 6 characters</p>
+            <p className="text-xs text-white mt-1">Must be at least 6 characters</p>
           </div>
 
           <div>
-            <label htmlFor="confirmPassword" className="block text-sm font-medium text-slate-300 mb-2">
+            <label htmlFor="confirmPassword" className="block text-sm font-medium text-white mb-2">
               Confirm Password
             </label>
             <input
@@ -250,7 +250,7 @@ const SignUp = ({ onLogin }) => {
         </form>
 
         <div className="mt-6 text-center">
-          <p className="text-sm text-slate-400">
+          <p className="text-sm text-white">
             Already have an account?{' '}
             <Link to="/login" className="text-indigo-400 hover:text-indigo-300 font-medium transition-colors">
               Sign in

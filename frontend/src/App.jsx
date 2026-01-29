@@ -67,7 +67,7 @@ function App() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-slate-950">
-        <div className="text-xl text-slate-400">Loading...</div>
+        <div className="text-xl text-white">Loading...</div>
       </div>
     )
   }

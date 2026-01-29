@@ -116,6 +116,7 @@ const DeviceDetail = () => {
 
   // Track if fetch is in progress to prevent duplicate calls
   const fetchInProgressRef = useRef(false)
+  const actionInProgressRef = useRef(false)
 
   const fetchDeviceDetails = async () => {
     // Prevent duplicate simultaneous calls
@@ -284,89 +285,67 @@ const DeviceDetail = () => {
     }
   }
 
-  const handleAction = async (action) => {
+  const handleAction = (action) => {
     if (action === 'lock') {
       // Show screen lock modal instead of direct action
       setShowLockModal(true)
       return
     }
 
-    // INSTANT FEEDBACK - Update UI immediately BEFORE any confirmation (for ultra-fast response)
-    setActionLoading(true)
-    
-    // OPTIMISTIC UI UPDATES - update UI immediately for instant feel
+    // Prevent double-firing so one click = one request (alarm/clear_alarm)
+    if (action === 'alarm' || action === 'clear_alarm') {
+      if (actionInProgressRef.current) return
+      actionInProgressRef.current = true
+      setTimeout(() => { actionInProgressRef.current = false }, 600)
+    }
+
+    // INSTANT UI: optimistic update immediately (no waiting)
     if (action === 'clear_alarm' && device) {
       setDevice(prev => prev ? { ...prev, status: 'active' } : prev)
     } else if (action === 'alarm' && device) {
-      // OPTIMISTIC UPDATE: Show "Clear Alarm" button immediately for alarm
       setDevice(prev => prev ? { ...prev, status: 'alarm' } : prev)
     }
 
-    // Quick confirmation (non-blocking) - only for destructive actions
-    let shouldProceed = true
     let message = null
-
-    if (action === 'alarm') {
-      // Skip confirmation for alarm - instant response
-      shouldProceed = true
-    } else if (action === 'message') {
+    if (action === 'message') {
       message = prompt('Enter alert message:')
-      shouldProceed = !!message
-      if (!shouldProceed) {
-        setActionLoading(false)
-        // Revert optimistic update
-        if (device && action === 'alarm') {
-          setDevice(prev => prev ? { ...prev, status: 'active' } : prev)
-        }
-        return
-      }
-    } else if (action === 'clear_alarm') {
-      // Skip confirmation for clear alarm - instant response
-      shouldProceed = true
+      if (!message) return
+      if (device) setDevice(prev => prev ? { ...prev, status: 'alarm' } : prev)
     }
 
-    try {
-      // Make API call and WAIT for response to ensure status is updated
-      // This fixes the "need to click 2-3 times" issue
-      const apiCall = action === 'clear_alarm' 
-        ? apiClient.post('/api/clear_alarm', { device_id: deviceId }, { timeout: 10000 })
-        : apiClient.post('/api/trigger_action', {
-            device_id: deviceId,
-            action: action === 'message' ? 'alarm' : action,
-            ...(message && { message })
-          }, { timeout: 10000 })
-      
-      // Wait for API response to ensure status is updated on server
-      const response = await apiCall
-      
-      // Verify status was updated
-      if (response.data && response.data.device) {
-        const newStatus = response.data.device.status
-        if (device) {
+    // Brief loading (400ms) for feedback only; button stays usable
+    setActionLoading(true)
+    const clearLoading = () => { setTimeout(() => setActionLoading(false), 400) }
+
+    // Fire request immediately – do NOT await; UI already updated
+    const apiCall = action === 'clear_alarm'
+      ? apiClient.post('/api/clear_alarm', { device_id: deviceId }, { timeout: 8000 })
+      : apiClient.post('/api/trigger_action', {
+          device_id: deviceId,
+          action: action === 'message' ? 'alarm' : action,
+          ...(message && { message })
+        }, { timeout: 8000 })
+
+    apiCall
+      .then((response) => {
+        if (response.data?.device && device) {
+          const newStatus = response.data.device.status
           if (action === 'clear_alarm' && newStatus === 'active') {
             setDevice(prev => prev ? { ...prev, status: 'active' } : prev)
-          } else if (action === 'alarm' && newStatus === 'alarm') {
+          } else if ((action === 'alarm' || action === 'message') && newStatus === 'alarm') {
             setDevice(prev => prev ? { ...prev, status: 'alarm' } : prev)
           }
         }
-      }
-      
-      setActionLoading(false)
-      
-      // Refresh immediately to sync with server
-      fetchDeviceDetails().catch(() => {})
-      fetchActivityLogs().catch(() => {})
-      
-    } catch (error) {
-      // Revert optimistic update on error
-      if (action === 'clear_alarm' && device) {
-        setDevice(prev => prev ? { ...prev, status: 'alarm' } : prev)
-      } else if (action === 'alarm' && device) {
-        setDevice(prev => prev ? { ...prev, status: 'active' } : prev)
-      }
-      setActionLoading(false)
-      console.error('Action error:', error)
-    }
+      })
+      .catch((error) => {
+        if (action === 'clear_alarm' && device) {
+          setDevice(prev => prev ? { ...prev, status: 'alarm' } : prev)
+        } else if ((action === 'alarm' || action === 'message') && device) {
+          setDevice(prev => prev ? { ...prev, status: 'active' } : prev)
+        }
+        console.error('Action error:', error)
+      })
+      .finally(clearLoading)
   }
 
   const handleConfirmLock = async () => {
@@ -1389,7 +1368,7 @@ const DeviceDetail = () => {
                   type="text"
                   value={lockPassword}
                   onChange={(e) => setLockPassword(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-4 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 placeholder:text-gray-500"
                   placeholder="Enter unlock password"
                   autoComplete="off"
                   autoCapitalize="off"
@@ -1424,7 +1403,7 @@ const DeviceDetail = () => {
                       onChange={(e) => setLockMessage(e.target.value)}
                       placeholder="Enter a message to display on the locked screen (optional)"
                       rows={4}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
+                      className="w-full px-4 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none placeholder:text-gray-500"
                     />
                   </div>
                 )}

@@ -7,8 +7,8 @@ const DeviceCard = ({ device, onAction }) => {
       missing: 'bg-red-500/20 text-red-400',
       locked: 'bg-amber-500/20 text-amber-400',
       alarm: 'bg-orange-500/20 text-orange-400',
-      wiped: 'bg-slate-500/20 text-slate-400',
-      inactive: 'bg-slate-500/20 text-slate-400'
+      wiped: 'bg-slate-500/20 text-white',
+      inactive: 'bg-slate-500/20 text-white'
     }
     return colors[status] || colors.active
   }
@@ -20,8 +20,8 @@ const DeviceCard = ({ device, onAction }) => {
       <div className="flex items-start justify-between mb-4">
         <div>
           <h3 className="text-xl font-semibold text-white">{device.name}</h3>
-          <p className="text-sm text-slate-400">{device.device_type || 'Unknown Device'}</p>
-          <p className="text-xs text-slate-500 mt-1">ID: {device.device_id}</p>
+          <p className="text-sm text-white">{device.device_type || 'Unknown Device'}</p>
+          <p className="text-xs text-white mt-1">ID: {device.device_id}</p>
         </div>
         <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(device.status)}`}>
           {device.status}
@@ -30,10 +30,10 @@ const DeviceCard = ({ device, onAction }) => {
 
       {device.last_lat && device.last_lng && (
         <div className="mb-4">
-          <p className="text-sm text-slate-400">
+          <p className="text-sm text-white">
             📍 Location: {device.last_lat.toFixed(4)}, {device.last_lng.toFixed(4)}
           </p>
-          <p className="text-xs text-slate-500 mt-1">
+          <p className="text-xs text-white mt-1">
             Last seen: {formatDateTime(device.last_seen)}
           </p>
         </div>
@@ -74,7 +74,7 @@ const DeviceCard = ({ device, onAction }) => {
           </button>
         </div>
       ) : (
-        <p className="text-xs text-slate-500 mt-2">
+        <p className="text-xs text-white mt-2">
           OS devices are view-only. Install the device agent for full control (lock, alarm, wipe).
         </p>
       )}

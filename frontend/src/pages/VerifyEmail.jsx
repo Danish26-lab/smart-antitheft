@@ -172,11 +172,11 @@ const VerifyEmail = ({ onLogin }) => {
       <div className="bg-slate-800/80 backdrop-blur-xl rounded-2xl shadow-2xl shadow-black/50 border border-slate-700/50 p-4 sm:p-6 md:p-8 w-full max-w-md">
         <div className="text-center mb-6 sm:mb-8">
           <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">🛡️ Anti-Theft System</h1>
-          <p className="text-sm sm:text-base text-slate-400">Verify your email address</p>
+          <p className="text-sm sm:text-base text-white">Verify your email address</p>
         </div>
 
         <div className="mb-6 text-center">
-          <p className="text-sm text-slate-400 mb-2">
+          <p className="text-sm text-white mb-2">
             We've sent a verification code to
           </p>
           <p className="text-base font-semibold text-white">{email}</p>
@@ -190,7 +190,7 @@ const VerifyEmail = ({ onLogin }) => {
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
-            <label htmlFor="code-0" className="block text-sm font-medium text-slate-300 mb-4 text-center">
+            <label htmlFor="code-0" className="block text-sm font-medium text-white mb-4 text-center">
               Enter the 6-digit code
             </label>
             <div className="flex justify-center gap-2 sm:gap-3">
@@ -210,7 +210,7 @@ const VerifyEmail = ({ onLogin }) => {
                 />
               ))}
             </div>
-            <p className="text-xs text-slate-500 mt-3 text-center">
+            <p className="text-xs text-white mt-3 text-center">
               This code will expire in 15 minutes
             </p>
           </div>
@@ -239,7 +239,7 @@ const VerifyEmail = ({ onLogin }) => {
           </button>
           
           <div className="pt-3 border-t border-slate-600">
-            <p className="text-sm text-slate-400">
+            <p className="text-sm text-white">
               Wrong email?{' '}
               <Link to="/signup" className="text-indigo-400 hover:text-indigo-300 font-medium transition-colors">
                 Sign up again

@@ -125,7 +125,7 @@ const FileBrowser = ({ deviceId, onSelect, selectedPaths = [], onNavigate }) => 
         >
           ↑ Up
         </button>
-        <div className="flex-1 bg-white px-3 py-1 rounded border border-gray-300 font-mono text-sm">
+        <div className="flex-1 bg-white text-gray-900 px-3 py-1 rounded border border-gray-300 font-mono text-sm">
           {currentPath}
         </div>
         <button
@@ -193,7 +193,7 @@ const FileBrowser = ({ deviceId, onSelect, selectedPaths = [], onNavigate }) => 
                       <span className="text-lg">
                         {item.type === 'folder' ? '📁' : '📄'}
                       </span>
-                      <span className="font-mono text-sm">{item.name}</span>
+                      <span className="font-mono text-sm text-gray-900">{item.name}</span>
                     </div>
                   </td>
                   <td className="px-4 py-2 text-sm text-gray-600">

@@ -11,12 +11,24 @@ body {
   -moz-osx-font-smoothing: grayscale;
   overflow-x: hidden;
   background-color: #0f172a;
-  color: #f1f5f9;
+  color: #ffffff;
 }
 
 code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
+}
+
+/* Inputs and textareas: dark text on light background so typed text is visible (body is dark theme) */
+input,
+textarea,
+select {
+  color: #111827;
+  background-color: #fff;
+}
+input::placeholder,
+textarea::placeholder {
+  color: #6b7280;
 }
 
 /* Touch-friendly interactions */

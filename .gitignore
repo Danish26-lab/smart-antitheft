@@ -54,3 +54,4 @@ device_agent/agent.log
 device_agent/screenshots/
 
 .vercel
+.env*.local

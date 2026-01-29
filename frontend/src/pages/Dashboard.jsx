@@ -47,14 +47,14 @@ const Dashboard = () => {
   }
 
   if (loading) {
-    return <div className="text-center py-8 text-slate-400">Loading dashboard...</div>
+    return <div className="text-center py-8 text-white">Loading dashboard...</div>
   }
 
   const StatCard = ({ title, value, icon, color }) => (
     <div className={`bg-slate-800/80 border border-slate-700/50 rounded-xl shadow-lg p-4 sm:p-6 ${color} backdrop-blur`}>
       <div className="flex items-center justify-between">
         <div className="flex-1 min-w-0">
-          <p className="text-slate-400 text-xs sm:text-sm font-medium truncate">{title}</p>
+          <p className="text-white text-xs sm:text-sm font-medium truncate">{title}</p>
           <p className="text-2xl sm:text-3xl font-bold text-white mt-1 sm:mt-2">{value}</p>
         </div>
         <div className="text-3xl sm:text-4xl ml-2 flex-shrink-0">{icon}</div>
@@ -115,14 +115,14 @@ const Dashboard = () => {
             <div key={device.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 bg-slate-700/30 rounded-lg gap-2 sm:gap-0 border border-slate-600/30">
               <div className="flex-1 min-w-0">
                 <p className="font-medium text-white truncate">{device.name}</p>
-                <p className="text-xs sm:text-sm text-slate-400 truncate">
+                <p className="text-xs sm:text-sm text-white truncate">
                   Status: {device.status} • Last seen: {formatDateTime(device.last_seen)}
                 </p>
               </div>
               <span className={`px-2 sm:px-3 py-1 rounded-full text-xs whitespace-nowrap ${
                 device.status === 'active' ? 'bg-emerald-500/20 text-emerald-400' :
                 device.status === 'missing' ? 'bg-red-500/20 text-red-400' :
-                'bg-slate-500/20 text-slate-400'
+                'bg-slate-500/20 text-white'
               }`}>
                 {device.status}
               </span>
