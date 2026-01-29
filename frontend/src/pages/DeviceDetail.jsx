@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef, useCallback, startTransition } from
 import { useParams, useNavigate } from 'react-router-dom'
 import apiClient from '../api/axios'
 import MapView from '../components/MapView'
-import LocationPicker from './LocationPicker'
 import FileBrowser from '../components/FileBrowser'
 import { getAccurateLocation } from '../utils/geolocation'
 import { formatDateTime, formatRelativeTime } from '../utils/dateFormatter'
@@ -814,7 +813,6 @@ const DeviceDetail = () => {
                 <span>📍</span>
                 <span>{locationLoading ? 'Refreshing...' : 'Refresh Location'}</span>
               </button>
-              
               <button
                 onClick={() => setShowGeofenceModal(true)}
                 className={`px-4 py-2 rounded-lg flex items-center space-x-2 shadow-lg text-sm font-medium ${

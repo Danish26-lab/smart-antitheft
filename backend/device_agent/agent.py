@@ -133,6 +133,21 @@ class DeviceAgent:
                 self.last_known_location = None
                 self.gps_failed_count = 0
         
+        # Also clear Bukit Peringgit / Melaka city (2.226, 102.259) - wrong location when device is in Merlimau
+        if self.last_known_location:
+            bukit_peringgit_lat = 2.226
+            bukit_peringgit_lng = 102.259
+            dist_bp = self._calculate_distance(
+                bukit_peringgit_lat, bukit_peringgit_lng,
+                self.last_known_location['lat'],
+                self.last_known_location['lng']
+            )
+            if dist_bp < 15000:  # Within 15km of Bukit Peringgit
+                logging.warning(f"🗑️ Clearing cached Bukit Peringgit/Melaka city location: {self.last_known_location}")
+                logging.warning(f"   Device may be in Merlimau. Forcing fresh GPS on next check.")
+                self.last_known_location = None
+                self.gps_failed_count = 0
+        
         # Check Windows Location Services on startup
         if platform.system().lower() == 'windows':
             self._check_location_services()
@@ -904,20 +919,35 @@ class DeviceAgent:
         return None
     
     def _clear_wrong_cached_location(self):
-        """Clear any cached location that's in KL area (wrong ISP location)"""
-        if self.last_known_location:
-            kl_area_lat = 3.14
-            kl_area_lng = 101.69
-            distance_from_kl = self._calculate_distance(
-                kl_area_lat, kl_area_lng,
-                self.last_known_location['lat'],
-                self.last_known_location['lng']
-            )
-            if distance_from_kl < 20000:  # Within 20km of KL
-                logging.warning(f"🗑️ Clearing cached KL location: {self.last_known_location}")
-                logging.warning(f"   This was likely wrong IP geolocation. Will force GPS on next attempt.")
-                self.last_known_location = None
-                self.gps_failed_count = 0  # Reset GPS failure count
+        """Clear any cached location that's in KL area or Bukit Peringgit/Melaka city (wrong ISP/cached location)"""
+        if not self.last_known_location:
+            return
+        kl_area_lat = 3.14
+        kl_area_lng = 101.69
+        distance_from_kl = self._calculate_distance(
+            kl_area_lat, kl_area_lng,
+            self.last_known_location['lat'],
+            self.last_known_location['lng']
+        )
+        if distance_from_kl < 20000:  # Within 20km of KL
+            logging.warning(f"🗑️ Clearing cached KL location: {self.last_known_location}")
+            logging.warning(f"   This was likely wrong IP geolocation. Will force GPS on next attempt.")
+            self.last_known_location = None
+            self.gps_failed_count = 0
+            return
+        # Bukit Peringgit / Melaka city (2.226, 102.259) - wrong when device is actually in Merlimau
+        bukit_peringgit_lat = 2.226
+        bukit_peringgit_lng = 102.259
+        dist_bp = self._calculate_distance(
+            bukit_peringgit_lat, bukit_peringgit_lng,
+            self.last_known_location['lat'],
+            self.last_known_location['lng']
+        )
+        if dist_bp < 15000:  # Within 15km of Bukit Peringgit
+            logging.warning(f"🗑️ Clearing cached Bukit Peringgit/Melaka city location: {self.last_known_location}")
+            logging.warning(f"   Device may be in Merlimau. Will force GPS on next attempt.")
+            self.last_known_location = None
+            self.gps_failed_count = 0
     
     def _check_location_services(self):
         """Check if Windows Location Services is enabled and provide detailed diagnostics"""
@@ -1233,6 +1263,15 @@ class DeviceAgent:
                     logging.warning(f"   Device is in Merlimau, but cached location is Seremban. Forcing fresh GPS check.")
                     self.last_known_location = None
                     self.gps_failed_count = 0
+                else:
+                    # Also clear Bukit Peringgit / Melaka city (2.226, 102.259) - wrong when device is in Merlimau
+                    bp_lat, bp_lng = 2.226, 102.259
+                    dist_bp = self._calculate_distance(bp_lat, bp_lng, self.last_known_location['lat'], self.last_known_location['lng'])
+                    if dist_bp < 15000:
+                        logging.warning(f"🗑️ Clearing cached Bukit Peringgit/Melaka city location before fresh GPS: {self.last_known_location}")
+                        logging.warning(f"   Device may be in Merlimau. Forcing fresh GPS check.")
+                        self.last_known_location = None
+                        self.gps_failed_count = 0
             
             # Get location - this method now handles all validation and GPS priority
             location = self.get_location()

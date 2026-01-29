@@ -1288,6 +1288,7 @@ def update_device():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+
 @device_bp.route('/delete_device', methods=['DELETE'])
 @jwt_required()
 def delete_device():

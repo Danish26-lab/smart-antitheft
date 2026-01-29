@@ -43,10 +43,11 @@ const Navbar = ({ user, onLogout, onMenuClick }) => {
             {showMenu && (
               <>
                 <div 
-                  className="fixed inset-0 z-10"
+                  className="fixed inset-0 z-[9998]"
                   onClick={() => setShowMenu(false)}
+                  aria-hidden="true"
                 />
-                <div className="absolute right-0 mt-2 w-48 sm:w-56 bg-slate-800 rounded-xl shadow-xl py-1 z-20 border border-slate-600/50 backdrop-blur">
+                <div className="absolute right-0 mt-2 w-48 sm:w-56 bg-slate-800 rounded-xl shadow-xl py-1 z-[9999] border border-slate-600/50 backdrop-blur">
                   <div className="px-4 py-3 border-b border-slate-600/50">
                     <p className="text-sm font-medium text-white truncate">{user?.name || 'User'}</p>
                     <p className="text-xs text-white truncate">{user?.email || ''}</p>
