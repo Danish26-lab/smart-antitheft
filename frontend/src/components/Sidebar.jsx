@@ -9,13 +9,12 @@ const Sidebar = ({ onClose }) => {
   ]
 
   return (
-    <aside className="w-64 bg-gray-800 text-white h-full overflow-y-auto">
+    <aside className="w-64 bg-slate-900 border-r border-slate-700/50 text-slate-200 h-full overflow-y-auto">
       <div className="p-4 sm:p-6 flex items-center justify-between lg:justify-start">
-        <h2 className="text-lg sm:text-xl font-bold">Navigation</h2>
-        {/* Close button for mobile */}
+        <h2 className="text-lg sm:text-xl font-bold text-white">Navigation</h2>
         <button
           onClick={onClose}
-          className="lg:hidden p-2 rounded-md text-gray-300 hover:text-white hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="lg:hidden p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-700/50 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors"
           aria-label="Close menu"
         >
           <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -29,14 +28,13 @@ const Sidebar = ({ onClose }) => {
             key={item.path}
             to={item.path}
             onClick={() => {
-              // Close sidebar on mobile when navigating
               if (window.innerWidth < 1024 && onClose) {
                 onClose()
               }
             }}
             className={({ isActive }) =>
-              `flex items-center space-x-3 px-4 sm:px-6 py-3 sm:py-3 hover:bg-gray-700 transition-colors touch-manipulation ${
-                isActive ? 'bg-gray-700 border-r-4 border-blue-500' : ''
+              `flex items-center space-x-3 px-4 sm:px-6 py-3 sm:py-3 hover:bg-slate-700/50 transition-colors touch-manipulation ${
+                isActive ? 'bg-slate-700/50 border-r-4 border-indigo-500 text-white' : ''
               }`
             }
           >

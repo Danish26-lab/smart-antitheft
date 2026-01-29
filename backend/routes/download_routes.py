@@ -70,7 +70,6 @@ def download_agent():
             'requirements.txt',
             'register_device.py',
             'hardware_detection.py',
-            'fingerprint.py',
             'wifi_monitor.py',
             'lock_screen.py',
             'prey_lock_screen.py',

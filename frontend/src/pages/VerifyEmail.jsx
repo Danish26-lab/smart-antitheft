@@ -168,29 +168,29 @@ const VerifyEmail = ({ onLogin }) => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center p-4 sm:p-6">
-      <div className="bg-white rounded-lg shadow-2xl p-4 sm:p-6 md:p-8 w-full max-w-md">
+    <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-indigo-950 flex items-center justify-center p-4 sm:p-6">
+      <div className="bg-slate-800/80 backdrop-blur-xl rounded-2xl shadow-2xl shadow-black/50 border border-slate-700/50 p-4 sm:p-6 md:p-8 w-full max-w-md">
         <div className="text-center mb-6 sm:mb-8">
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-2">🛡️ Anti-Theft System</h1>
-          <p className="text-sm sm:text-base text-gray-600">Verify your email address</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">🛡️ Anti-Theft System</h1>
+          <p className="text-sm sm:text-base text-slate-400">Verify your email address</p>
         </div>
 
         <div className="mb-6 text-center">
-          <p className="text-sm text-gray-700 mb-2">
+          <p className="text-sm text-slate-400 mb-2">
             We've sent a verification code to
           </p>
-          <p className="text-base font-semibold text-gray-900">{email}</p>
+          <p className="text-base font-semibold text-white">{email}</p>
         </div>
 
         {error && (
-          <div className={`bg-red-100 border-red-400 text-red-700 border px-4 py-3 rounded mb-4`}>
+          <div className="bg-red-500/10 border border-red-500/50 text-red-400 px-4 py-3 rounded-lg mb-4">
             {error}
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
-            <label htmlFor="code-0" className="block text-sm font-medium text-gray-700 mb-4 text-center">
+            <label htmlFor="code-0" className="block text-sm font-medium text-slate-300 mb-4 text-center">
               Enter the 6-digit code
             </label>
             <div className="flex justify-center gap-2 sm:gap-3">
@@ -205,12 +205,12 @@ const VerifyEmail = ({ onLogin }) => {
                   onChange={(e) => handleCodeChange(index, e.target.value)}
                   onKeyDown={(e) => handleKeyDown(index, e)}
                   onPaste={index === 0 ? handlePaste : undefined}
-                  className="w-12 h-14 sm:w-14 sm:h-16 text-center text-2xl sm:text-3xl font-bold border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 touch-manipulation"
+                  className="w-12 h-14 sm:w-14 sm:h-16 text-center text-2xl sm:text-3xl font-bold bg-slate-900/50 border-2 border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 touch-manipulation"
                   autoFocus={index === 0}
                 />
               ))}
             </div>
-            <p className="text-xs text-gray-500 mt-3 text-center">
+            <p className="text-xs text-slate-500 mt-3 text-center">
               This code will expire in 15 minutes
             </p>
           </div>
@@ -218,7 +218,7 @@ const VerifyEmail = ({ onLogin }) => {
           <button
             type="submit"
             disabled={loading || code.join('').length !== 6}
-            className="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 touch-manipulation text-base"
+            className="w-full bg-gradient-to-r from-indigo-500 via-purple-500 to-purple-600 hover:from-indigo-400 hover:via-purple-400 hover:to-purple-500 text-white font-semibold py-3 px-4 rounded-lg transition-all duration-200 shadow-lg shadow-purple-500/25 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-slate-800 touch-manipulation text-base"
           >
             {loading ? 'Verifying...' : 'Verify Email'}
           </button>
@@ -229,7 +229,7 @@ const VerifyEmail = ({ onLogin }) => {
             type="button"
             onClick={handleResend}
             disabled={resending || countdown > 0}
-            className="text-sm text-blue-500 hover:text-blue-600 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+            className="text-sm text-indigo-400 hover:text-indigo-300 font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             {resending 
               ? 'Sending...' 
@@ -238,10 +238,10 @@ const VerifyEmail = ({ onLogin }) => {
                 : "Didn't receive the code? Resend"}
           </button>
           
-          <div className="pt-3 border-t border-gray-200">
-            <p className="text-sm text-gray-600">
+          <div className="pt-3 border-t border-slate-600">
+            <p className="text-sm text-slate-400">
               Wrong email?{' '}
-              <Link to="/signup" className="text-blue-500 hover:text-blue-600 font-medium">
+              <Link to="/signup" className="text-indigo-400 hover:text-indigo-300 font-medium transition-colors">
                 Sign up again
               </Link>
             </p>

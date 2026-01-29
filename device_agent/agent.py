@@ -257,8 +257,7 @@ class DeviceAgent:
             
             # At this point, either no device_id exists or verification failed.
             # Use the existing registration flow (which may include hardware detection),
-            # but without any hardware fingerprinting.
-            logging.info("[AUTO-REG] Attempting automatic registration with backend (no fingerprinting)...")
+            logging.info("[AUTO-REG] Attempting automatic registration with backend...")
             
             # If user_email is configured, we can register the device directly to that user.
             if not self.user_email:

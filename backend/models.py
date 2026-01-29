@@ -50,7 +50,6 @@ class Device(db.Model):
     
     id = db.Column(db.Integer, primary_key=True)
     device_id = db.Column(db.String(100), unique=True, nullable=False, index=True)
-    fingerprint_hash = db.Column(db.String(64), unique=True, nullable=True, index=True)  # Legacy: formerly used for hardware identification
     name = db.Column(db.String(100), nullable=False)
     device_type = db.Column(db.String(50))  # os_device, agent_device, laptop, phone, tablet, etc.
     # OS-level device metadata (for OS-based devices detected via browser/agent)

@@ -380,7 +380,7 @@ const Devices = () => {
   return (
     <div className="space-y-3 sm:space-y-4">
       {/* Header */}
-      <div className="bg-white rounded-lg shadow-sm p-3 sm:p-4">
+      <div className="bg-slate-800/80 border border-slate-700/50 rounded-xl shadow-lg p-3 sm:p-4 backdrop-blur">
         {/* Search and Action Buttons - Mobile Stacked */}
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 mb-3 sm:mb-4">
           <div className="flex-1 w-full sm:max-w-md">
@@ -393,24 +393,24 @@ const Devices = () => {
             />
           </div>
           <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
-            <div className="flex items-center space-x-1 sm:space-x-2 bg-gray-100 rounded-lg p-1">
+            <div className="flex items-center space-x-1 sm:space-x-2 bg-slate-700/50 rounded-lg p-1">
               <button
                 onClick={() => setViewMode('grid')}
-                className={`px-2 sm:px-3 py-1.5 sm:py-1 rounded text-sm sm:text-base touch-manipulation ${viewMode === 'grid' ? 'bg-white shadow-sm' : ''}`}
+                className={`px-2 sm:px-3 py-1.5 sm:py-1 rounded text-sm sm:text-base touch-manipulation text-slate-300 ${viewMode === 'grid' ? 'bg-slate-600/50 shadow-sm text-white' : ''}`}
                 title="Grid view"
               >
                 ⊞
               </button>
               <button
                 onClick={() => setViewMode('list')}
-                className={`px-2 sm:px-3 py-1.5 sm:py-1 rounded text-sm sm:text-base touch-manipulation ${viewMode === 'list' ? 'bg-white shadow-sm' : ''}`}
+                className={`px-2 sm:px-3 py-1.5 sm:py-1 rounded text-sm sm:text-base touch-manipulation text-slate-300 ${viewMode === 'list' ? 'bg-slate-600/50 shadow-sm text-white' : ''}`}
                 title="List view"
               >
                 ☰
               </button>
               <button
                 onClick={() => setShowFilters(!showFilters)}
-                className={`px-2 sm:px-3 py-1.5 sm:py-1 rounded text-sm sm:text-base touch-manipulation ${showFilters ? 'bg-white shadow-sm' : ''}`}
+                className={`px-2 sm:px-3 py-1.5 sm:py-1 rounded text-sm sm:text-base touch-manipulation text-slate-300 ${showFilters ? 'bg-slate-600/50 shadow-sm text-white' : ''}`}
                 title="Filters"
               >
                 🌐
@@ -418,7 +418,7 @@ const Devices = () => {
             </div>
             <button
               onClick={exportToCSV}
-              className="px-3 sm:px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors text-xs sm:text-sm touch-manipulation whitespace-nowrap"
+              className="px-3 sm:px-4 py-2 bg-slate-700/50 hover:bg-slate-600/50 rounded-lg transition-colors text-slate-300 text-xs sm:text-sm touch-manipulation whitespace-nowrap"
             >
               <span className="hidden sm:inline">EXPORT CSV</span>
               <span className="sm:hidden">CSV</span>
@@ -433,7 +433,7 @@ const Devices = () => {
           </div>
         </div>
 
-        <div className="text-xs sm:text-sm text-gray-600">
+        <div className="text-xs sm:text-sm text-slate-400">
           SHOWING {filteredDevices.length} / {devices.length} DEVICES
         </div>
       </div>
@@ -448,7 +448,7 @@ const Devices = () => {
               onClick={() => setShowFilters(false)}
             />
             {/* Filters panel */}
-            <div className="fixed lg:static inset-y-0 left-0 z-50 lg:z-auto w-80 lg:w-64 bg-white rounded-lg lg:rounded-lg shadow-lg lg:shadow-sm p-4 h-full lg:h-fit overflow-y-auto lg:overflow-visible transform transition-transform duration-300 ease-in-out lg:transform-none">
+            <div className="fixed lg:static inset-y-0 left-0 z-50 lg:z-auto w-80 lg:w-64 bg-slate-800 border-r border-slate-700/50 rounded-lg lg:rounded-lg shadow-lg lg:shadow-sm p-4 h-full lg:h-fit overflow-y-auto lg:overflow-visible transform transition-transform duration-300 ease-in-out lg:transform-none">
             <div className="mb-4">
               <h3 className="font-semibold text-gray-700 mb-2">
                 Selected Filters ({activeFiltersCount})
@@ -561,7 +561,7 @@ const Devices = () => {
         {/* Main Content */}
         <div className="flex-1 min-w-0">
           {viewMode === 'list' ? (
-            <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+            <div className="bg-slate-800/80 border border-slate-700/50 rounded-xl shadow-lg overflow-hidden backdrop-blur">
               {/* Mobile: Card view, Desktop: Table view */}
               <div className="block lg:hidden">
                 {/* Mobile Card View */}
@@ -945,9 +945,9 @@ const Devices = () => {
       {/* New Device Modal */}
       {showNewDeviceModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-3 sm:p-4">
-          <div className="bg-white rounded-lg p-4 sm:p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+          <div className="bg-slate-800 border border-slate-700/50 rounded-xl p-4 sm:p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-xl">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-xl font-semibold text-gray-800">Add New Device</h3>
+              <h3 className="text-xl font-semibold text-white">Add New Device</h3>
               <button
                 onClick={() => {
                   setShowNewDeviceModal(false)
@@ -1081,7 +1081,7 @@ const Devices = () => {
       {/* QR Code Modal */}
       {showQRCodeModal && connectionKey && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md">
+          <div className="bg-slate-800 border border-slate-700/50 rounded-xl p-6 w-full max-w-md shadow-xl">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-xl font-semibold text-gray-800">Scan QR Code to Connect</h3>
               <button

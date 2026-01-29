@@ -28,9 +28,6 @@ const Login = ({ onLogin }) => {
       // Link existing agent device if discovered
       if (deviceDiscovery.success && deviceDiscovery.device_id) {
         loginData.device_id = deviceDiscovery.device_id
-        if (deviceDiscovery.fingerprint_hash) {
-          loginData.fingerprint_hash = deviceDiscovery.fingerprint_hash
-        }
         console.log(`[DEVICE-LINK] Linking discovered device: ${deviceDiscovery.device_id}`)
       }
 
@@ -48,22 +45,22 @@ const Login = ({ onLogin }) => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center p-4 sm:p-6">
-      <div className="bg-white rounded-lg shadow-2xl p-4 sm:p-6 md:p-8 w-full max-w-md">
+    <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-indigo-950 flex items-center justify-center p-4 sm:p-6">
+      <div className="bg-slate-800/80 backdrop-blur-xl rounded-2xl shadow-2xl shadow-black/50 border border-slate-700/50 p-4 sm:p-6 md:p-8 w-full max-w-md">
         <div className="text-center mb-6 sm:mb-8">
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-2">🛡️ Anti-Theft System</h1>
-          <p className="text-sm sm:text-base text-gray-600">Sign in to your account</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">🛡️ Anti-Theft System</h1>
+          <p className="text-sm sm:text-base text-slate-400">Sign in to your account</p>
         </div>
 
         {error && (
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+          <div className="bg-red-500/10 border border-red-500/50 text-red-400 px-4 py-3 rounded-lg mb-4">
             {error}
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="email" className="block text-sm font-medium text-slate-300 mb-2">
               Email Address
             </label>
             <input
@@ -72,13 +69,13 @@ const Login = ({ onLogin }) => {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent touch-manipulation"
-              placeholder="admin@antitheft.com"
+              className="w-full px-4 py-3 text-base bg-slate-900/50 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 touch-manipulation"
+              placeholder="your@email.com"
             />
           </div>
 
           <div>
-            <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="password" className="block text-sm font-medium text-slate-300 mb-2">
               Password
             </label>
             <input
@@ -87,7 +84,7 @@ const Login = ({ onLogin }) => {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent touch-manipulation"
+              className="w-full px-4 py-3 text-base bg-slate-900/50 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 touch-manipulation"
               placeholder="Enter your password"
             />
           </div>
@@ -95,7 +92,7 @@ const Login = ({ onLogin }) => {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 touch-manipulation text-base"
+            className="w-full bg-gradient-to-r from-indigo-500 via-purple-500 to-purple-600 hover:from-indigo-400 hover:via-purple-400 hover:to-purple-500 text-white font-semibold py-3 px-4 rounded-lg transition-all duration-200 shadow-lg shadow-purple-500/25 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-slate-800 touch-manipulation text-base"
           >
             {loading ? 'Signing in...' : 'Sign In'}
           </button>
@@ -103,16 +100,12 @@ const Login = ({ onLogin }) => {
 
         <div className="mt-6 space-y-3">
           <div className="text-center">
-            <p className="text-sm text-gray-600">
+            <p className="text-sm text-slate-400">
               Don't have an account?{' '}
-              <Link to="/signup" className="text-blue-500 hover:text-blue-600 font-medium">
+              <Link to="/signup" className="text-indigo-400 hover:text-indigo-300 font-medium transition-colors">
                 Sign up
               </Link>
             </p>
-          </div>
-          <div className="text-center text-sm text-gray-600">
-            <p>Default credentials:</p>
-            <p className="font-mono text-xs mt-1">admin@antitheft.com / admin123</p>
           </div>
         </div>
       </div>

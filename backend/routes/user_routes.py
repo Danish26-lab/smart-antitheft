@@ -243,9 +243,8 @@ def register_user():
                 }), 500
         
         # Prey Project-style Device Linking
-        # Link existing agent device if device_id or fingerprint_hash is provided
+        # Link existing agent device if device_id is provided (browser discovers agent via localhost)
         device_id = data.get('device_id')
-        fingerprint_hash = data.get('fingerprint_hash')
         linked_device = None
         
         if device_id:
@@ -257,15 +256,6 @@ def register_user():
                 device.user_id = user.id
                 linked_device = device
                 logging.info(f"Linked device {device_id} to user {user.email}")
-        elif fingerprint_hash:
-            # Link by fingerprint_hash
-            device = Device.query.filter_by(fingerprint_hash=fingerprint_hash).first()
-            if device:
-                if device.user_id is not None:
-                    return jsonify({'error': 'Device is already linked to another user'}), 409
-                device.user_id = user.id
-                linked_device = device
-                logging.info(f"Linked device {device.device_id} (fingerprint) to user {user.email}")
         
         # Legacy: Automatically register an OS-level device if provided (browser detection - deprecated)
         os_device = data.get('os_device') or data.get('browser_device')
@@ -605,9 +595,8 @@ def login():
         access_token = create_access_token(identity=str(user.id))
 
         # Prey Project-style Device Linking on Login
-        # Link existing agent device if device_id or fingerprint_hash is provided
+        # Link existing agent device if device_id is provided (browser discovers agent via localhost)
         device_id = data.get('device_id')
-        fingerprint_hash = data.get('fingerprint_hash')
         linked_device = None
         
         if device_id:
@@ -624,17 +613,6 @@ def login():
                 else:
                     # Device belongs to another user - skip
                     logging.warning(f"Device {device_id} belongs to another user, skipping link")
-        elif fingerprint_hash:
-            device = Device.query.filter_by(fingerprint_hash=fingerprint_hash).first()
-            if device:
-                if device.user_id is None:
-                    device.user_id = user.id
-                    linked_device = device
-                    logging.info(f"Linked device {device.device_id} (fingerprint) to user {user.email} on login")
-                elif device.user_id == user.id:
-                    linked_device = device
-                else:
-                    logging.warning(f"Device {device.device_id} belongs to another user, skipping link")
         
         # Log device linking
         if linked_device and linked_device.user_id == user.id:

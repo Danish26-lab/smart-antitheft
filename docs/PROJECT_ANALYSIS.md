@@ -11,28 +11,70 @@ This is a **full-stack anti-theft and device security monitoring system** inspir
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                    Frontend (React + Vite)                   │
-│  - Dashboard, Device Management, Maps, QR Scanner            │
-│  - Deployed on Vercel: frontend-wine-iota-46.vercel.app     │
+│  - Dashboard, Device Management, Maps, QR Scanner          │
+│  - Login / Sign Up / Verify Email (verified account flow)   │
+│  - Deployed on Vercel                                        │
 └──────────────────────┬──────────────────────────────────────┘
                        │ HTTP/HTTPS
                        │ REST API + JWT Auth
 ┌──────────────────────▼──────────────────────────────────────┐
-│              Backend (Flask + SQLAlchemy)                     │
+│              Backend (Flask + SQLAlchemy)                    │
 │  - REST API endpoints                                        │
 │  - JWT authentication                                        │
-│  - SQLite/PostgreSQL database                                │
+│  - Email verification (verification code, verify_email)      │
 │  - Background job scheduler                                  │
-│  - Deployed on Vercel: antitheft-backend.vercel.app         │
+│  - Deployed on Vercel                                        │
 └──────────────────────┬──────────────────────────────────────┘
-                       │ HTTP/HTTPS
-                       │ Device Registration & Status Updates
-┌──────────────────────▼──────────────────────────────────────┐
-│            Device Agents (Python)                            │
-│  - Windows/Mac/Linux Agent (agent.py)                       │
-│  - iOS Agent (ios_agent.py)                                 │
-│  - Background monitoring & command execution                 │
-│  - Local HTTP server for browser discovery                   │
-└──────────────────────────────────────────────────────────────┘
+                       │
+         ┌─────────────┴─────────────┐
+         │ HTTP/HTTPS                │ DATABASE_URL
+         ▼                           ▼
+┌─────────────────────┐    ┌─────────────────────────────────┐
+│  Device Agents      │    │  Supabase (PostgreSQL)           │
+│  (Python)           │    │  - Hosted PostgreSQL database   │
+│  - agent.py         │    │  - users (email_verified,        │
+│  - iOS agent        │    │    verification_code, etc.)      │
+│  - Local discovery  │    │  - devices, activity_logs,       │
+└─────────────────────┘    │    breach_reports, etc.          │
+                           │  - Connection pooler for Vercel  │
+                           └─────────────────────────────────┘
+```
+
+### Verified Account (Email Verification) Flow
+
+```
+┌─────────────┐     POST /api/register_user      ┌─────────────┐
+│  User       │ ───────────────────────────────► │  Backend     │
+│  (Sign Up)  │  email, password, name           │              │
+└──────┬──────┘                                  └──────┬───────┘
+       │                                                │
+       │                                                │ Create user
+       │                                                │ email_verified = false
+       │                                                │ Send verification code (email)
+       │                                                ▼
+       │                                         ┌─────────────┐
+       │                                         │  Supabase    │
+       │                                         │  users row   │
+       │                                         └──────┬───────┘
+       │                                                │
+       │  Redirect to /verify-email                     │
+       │◄───────────────────────────────────────────────┘
+       │
+       ▼
+┌─────────────┐     POST /api/verify_email       ┌─────────────┐
+│  Verify     │ ───────────────────────────────► │  Backend    │
+│  Email page │  email, code                      │              │
+└──────┬──────┘                                  └──────┬──────┘
+       │                                                 │
+       │                                                 │ Check code, set
+       │                                                 │ email_verified = true
+       │                                                 ▼
+       │  JWT + redirect to dashboard            ┌─────────────┐
+       │◄────────────────────────────────────────│  Verified   │
+       │                                          │  Account    │
+       │                                          └─────────────┘
+       ▼
+  Login allowed; full access to dashboard
 ```
 
 ## 📁 Project Structure
@@ -80,15 +122,14 @@ smart-antitheft-system/
 │   ├── agent.py              # Main Windows/Mac/Linux agent
 │   ├── ios_agent.py          # iOS agent (Pythonista)
 │   ├── register_device.py    # Device registration script
-│   ├── hardware_detection.py # Hardware fingerprinting
-│   ├── fingerprint.py        # Device fingerprinting
+│   ├── hardware_detection.py # Hardware detection (no fingerprinting)
 │   ├── wifi_monitor.py       # WiFi monitoring
 │   ├── lock_screen.py        # Screen lock implementation
 │   ├── config.json           # Agent configuration
 │   └── requirements.txt
 │
-├── database/                 # SQLite database
-│   └── antitheft.db         # Main database file
+├── database/                 # SQLite (local dev only)
+│   └── antitheft.db          # Production uses Supabase (PostgreSQL)
 │
 ├── docs/                     # Documentation
 │   ├── PREY_SYSTEM_ANALYSIS.md  # Prey Project analysis
@@ -277,7 +318,7 @@ smart-antitheft-system/
 1. **Agent Starts:**
    - Agent runs `agent.py` on device
    - Checks for existing `config.json`
-   - If no config, generates device fingerprint
+   - If no config, registers with backend using device_id (hostname-based or from config)
    - Registers device as "unowned" (user_id = null)
 
 2. **Device Registration:**
@@ -368,9 +409,9 @@ smart-antitheft-system/
 - Token expiration (24 hours)
 
 ### Device Security
-- Hardware fingerprinting
+- Hardware detection (vendor, model, CPU, RAM, etc.)
 - Unique device IDs
-- Connection keys for linking
+- Connection keys for linking (optional)
 
 ### Data Protection
 - Remote wipe capabilities
@@ -383,9 +424,10 @@ smart-antitheft-system/
 
 **users:**
 - id, email, password_hash, name, is_admin
+- email_verified (boolean), verification_code, verification_code_expires (verified account flow)
 
 **devices:**
-- id, device_id, fingerprint_hash, name, device_type
+- id, device_id, name, device_type
 - os_name, os_version, architecture
 - hardware fields (CPU, RAM, GPU, etc.)
 - location fields (lat, lng, WiFi SSID)
@@ -409,7 +451,7 @@ smart-antitheft-system/
 
 ### Backend (Vercel)
 - Serverless functions
-- PostgreSQL database (production)
+- **Supabase** (PostgreSQL) for production (Vercel); set `DATABASE_URL` to Supabase connection string
 - SQLite for local development
 
 ### Frontend (Vercel)

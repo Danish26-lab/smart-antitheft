@@ -30,7 +30,6 @@ with app.app_context():
             print(f"  Type: {device.device_type}")
             print(f"  User ID: {device.user_id}")
             print(f"  User Email: {user_email or 'UNOWNED (not linked)'}")
-            print(f"  Fingerprint Hash: {device.fingerprint_hash[:20] + '...' if device.fingerprint_hash else 'None'}")
     
     print("\n" + "=" * 60)
     print("USERS")

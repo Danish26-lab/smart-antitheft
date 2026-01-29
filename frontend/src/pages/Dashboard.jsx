@@ -47,15 +47,15 @@ const Dashboard = () => {
   }
 
   if (loading) {
-    return <div className="text-center py-8">Loading dashboard...</div>
+    return <div className="text-center py-8 text-slate-400">Loading dashboard...</div>
   }
 
   const StatCard = ({ title, value, icon, color }) => (
-    <div className={`bg-white rounded-lg shadow-md p-4 sm:p-6 ${color}`}>
+    <div className={`bg-slate-800/80 border border-slate-700/50 rounded-xl shadow-lg p-4 sm:p-6 ${color} backdrop-blur`}>
       <div className="flex items-center justify-between">
         <div className="flex-1 min-w-0">
-          <p className="text-gray-600 text-xs sm:text-sm font-medium truncate">{title}</p>
-          <p className="text-2xl sm:text-3xl font-bold text-gray-800 mt-1 sm:mt-2">{value}</p>
+          <p className="text-slate-400 text-xs sm:text-sm font-medium truncate">{title}</p>
+          <p className="text-2xl sm:text-3xl font-bold text-white mt-1 sm:mt-2">{value}</p>
         </div>
         <div className="text-3xl sm:text-4xl ml-2 flex-shrink-0">{icon}</div>
       </div>
@@ -65,10 +65,10 @@ const Dashboard = () => {
   return (
     <div className="space-y-4 sm:space-y-6">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0">
-        <h2 className="text-2xl sm:text-3xl font-bold text-gray-800">Dashboard</h2>
+        <h2 className="text-2xl sm:text-3xl font-bold text-white">Dashboard</h2>
         <button
           onClick={fetchDashboardData}
-          className="w-full sm:w-auto bg-blue-500 hover:bg-blue-600 text-white px-4 py-2.5 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 touch-manipulation"
+          className="w-full sm:w-auto bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 text-white px-4 py-2.5 rounded-lg transition-all duration-200 shadow-lg shadow-purple-500/25 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-slate-900 touch-manipulation"
         >
           Refresh
         </button>
@@ -79,7 +79,7 @@ const Dashboard = () => {
           title="Total Devices"
           value={stats.totalDevices}
           icon="💻"
-          color="border-l-4 border-blue-500"
+          color="border-l-4 border-indigo-500"
         />
         <StatCard
           title="Missing Devices"
@@ -91,38 +91,38 @@ const Dashboard = () => {
           title="Active Devices"
           value={stats.activeDevices}
           icon="✅"
-          color="border-l-4 border-green-500"
+          color="border-l-4 border-emerald-500"
         />
         <StatCard
           title="Breach Alerts"
           value={stats.breachAlerts}
           icon="🔒"
-          color="border-l-4 border-orange-500"
+          color="border-l-4 border-amber-500"
         />
       </div>
 
-      <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
-        <h3 className="text-lg sm:text-xl font-semibold text-gray-800 mb-3 sm:mb-4">Device Locations</h3>
-        <div className="w-full" style={{ minHeight: '300px' }}>
+      <div className="bg-slate-800/80 border border-slate-700/50 rounded-xl shadow-lg p-4 sm:p-6 backdrop-blur">
+        <h3 className="text-lg sm:text-xl font-semibold text-white mb-3 sm:mb-4">Device Locations</h3>
+        <div className="w-full rounded-lg overflow-hidden" style={{ minHeight: '300px' }}>
           <MapView devices={devices} />
         </div>
       </div>
 
-      <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
-        <h3 className="text-lg sm:text-xl font-semibold text-gray-800 mb-3 sm:mb-4">Recent Activity</h3>
+      <div className="bg-slate-800/80 border border-slate-700/50 rounded-xl shadow-lg p-4 sm:p-6 backdrop-blur">
+        <h3 className="text-lg sm:text-xl font-semibold text-white mb-3 sm:mb-4">Recent Activity</h3>
         <div className="space-y-2">
           {devices.slice(0, 5).map((device) => (
-            <div key={device.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 bg-gray-50 rounded gap-2 sm:gap-0">
+            <div key={device.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 bg-slate-700/30 rounded-lg gap-2 sm:gap-0 border border-slate-600/30">
               <div className="flex-1 min-w-0">
-                <p className="font-medium text-gray-800 truncate">{device.name}</p>
-                <p className="text-xs sm:text-sm text-gray-500 truncate">
+                <p className="font-medium text-white truncate">{device.name}</p>
+                <p className="text-xs sm:text-sm text-slate-400 truncate">
                   Status: {device.status} • Last seen: {formatDateTime(device.last_seen)}
                 </p>
               </div>
               <span className={`px-2 sm:px-3 py-1 rounded-full text-xs whitespace-nowrap ${
-                device.status === 'active' ? 'bg-green-100 text-green-800' :
-                device.status === 'missing' ? 'bg-red-100 text-red-800' :
-                'bg-gray-100 text-gray-800'
+                device.status === 'active' ? 'bg-emerald-500/20 text-emerald-400' :
+                device.status === 'missing' ? 'bg-red-500/20 text-red-400' :
+                'bg-slate-500/20 text-slate-400'
               }`}>
                 {device.status}
               </span>

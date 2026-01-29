@@ -66,8 +66,8 @@ function App() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-xl">Loading...</div>
+      <div className="flex items-center justify-center min-h-screen bg-slate-950">
+        <div className="text-xl text-slate-400">Loading...</div>
       </div>
     )
   }
@@ -113,11 +113,11 @@ function App() {
           path="/*"
           element={
             isAuthenticated ? (
-              <div className="flex h-screen bg-gray-100 overflow-hidden">
+              <div className="flex h-screen bg-slate-950 overflow-hidden">
                 {/* Mobile sidebar overlay */}
                 {sidebarOpen && (
                   <div 
-                    className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
+                    className="fixed inset-0 bg-black/60 z-40 lg:hidden backdrop-blur-sm"
                     onClick={() => setSidebarOpen(false)}
                   />
                 )}
@@ -136,7 +136,7 @@ function App() {
                     onLogout={handleLogout}
                     onMenuClick={() => setSidebarOpen(!sidebarOpen)}
                   />
-                  <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 p-3 sm:p-4 md:p-6">
+                  <main className="flex-1 overflow-x-hidden overflow-y-auto bg-slate-900 p-3 sm:p-4 md:p-6">
                     <Routes>
                       <Route path="/dashboard" element={<Dashboard />} />
                       <Route path="/devices" element={<Devices />} />

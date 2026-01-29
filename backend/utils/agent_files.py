@@ -282,7 +282,7 @@ This installer follows the **Prey Project approach** - **zero configuration, ful
 
 ### ✅ Zero Configuration
 - All settings auto-detected
-- Hardware fingerprinting automatic
+- Device ID auto-assigned
 - Backend URL pre-configured
 - **No config file editing needed**
 
