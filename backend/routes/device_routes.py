@@ -836,8 +836,10 @@ def update_location():
                 logging.info(f"Accepting location update: New location is NOT in KL area (real GPS): {new_lat}, {new_lng}")
                 # Continue to update - don't reject
             # If location changed by more than 10km, it's likely inaccurate (IP geolocation issue)
-            # Only reject if it's not a manual update AND new location is in KL area
-            elif distance > 10000 and data.get('location_unchanged') and new_dist_from_kl < 20000:
+            # Only reject if: not approximate, AND location_unchanged, AND new location is in KL area
+            # When location_approximate=True, user/agent accepts KL IP geolocation (device may be in KL)
+            elif (distance > 10000 and data.get('location_unchanged') and new_dist_from_kl < 20000
+                  and not data.get('location_approximate')):
                 logging.warning(f"Rejecting location update: device moved {distance:.0f}m to KL area, likely inaccurate IP geolocation")
                 # Commit status update before returning (status was already updated above)
                 db.session.commit()

@@ -3,5 +3,6 @@
   "user_email": "danishdanialkm26@gmail.com",
   "report_interval": 15,
   "check_commands_interval": 0.1,
-  "backend_url": "https://antitheft-backend-2.vercel.app"
+  "backend_url": "https://antitheft-backend-2.vercel.app",
+  "allow_kl_approximate_location": true
 }
