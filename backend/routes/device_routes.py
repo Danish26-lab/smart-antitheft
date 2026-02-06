@@ -926,6 +926,46 @@ def update_location():
                         lng=new_lng
                     )
                     db.session.add(alarm_log)
+                    
+                    # Send notification to user (email + push) for GPS geofence breach
+                    try:
+                        from utils.email_alert import send_geofence_alert
+                        user = User.query.get(device.user_id)
+                        if user and user.email:
+                            send_geofence_alert(
+                                user.email,
+                                device.name,
+                                {
+                                    'lat': new_lat,
+                                    'lng': new_lng,
+                                    'breach_type': 'GPS Geofence',
+                                    'radius_m': device.geofence_radius_m,
+                                    'distance_m': distance_m,
+                                    'reason': 'Device left GPS geofence area'
+                                },
+                                device_id=device.device_id
+                            )
+                            logging.info(f"Notification sent to {user.email} for GPS geofence breach")
+
+                            # Push notification (best-effort)
+                            subs = PushSubscription.query.filter_by(user_id=user.id).all()
+                            subscription_payloads = [
+                                {
+                                    "endpoint": s.endpoint,
+                                    "keys": {"p256dh": s.p256dh, "auth": s.auth},
+                                }
+                                for s in subs
+                            ]
+                            if subscription_payloads:
+                                dashboard_url = os.getenv("FRONTEND_BASE_URL", "http://localhost:3000").rstrip("/") + f"/device/{device.device_id}"
+                                send_push_notifications(
+                                    subscription_payloads,
+                                    title="🚨 Anti-Theft Alert (GPS Geofence)",
+                                    body=f'{device.name} left the GPS geofence area. Tap to open dashboard.',
+                                    url=dashboard_url,
+                                )
+                    except Exception as e:
+                        logging.error(f"Error sending GPS geofence notification: {e}")
                 
                 # Check if device returned to safe zone (was outside/alarm, now inside)
                 elif not device.was_inside_geofence and is_inside and device.status == 'alarm':
