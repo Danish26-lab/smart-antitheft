@@ -485,6 +485,62 @@ const DeviceDetail = () => {
     }
   }
 
+  const handleVerifyLocationBrowser = () => {
+    if (!navigator.geolocation) {
+      alert('Browser geolocation is not supported on this device.')
+      return
+    }
+
+    setLocationLoading(true)
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        try {
+          const { latitude, longitude, accuracy } = position.coords
+          await apiClient.post(
+            '/api/devices/verify_location',
+            {
+              device_id: deviceId,
+              lat: latitude,
+              lng: longitude,
+              accuracy: accuracy
+            },
+            { timeout: 15000 }
+          )
+
+          // Refresh data in background
+          fetchDeviceDetails().catch(() => {})
+          fetchActivityLogs().catch(() => {})
+
+          setTimeout(() => {
+            alert(`✅ Location verified via browser GPS (±${Math.round(accuracy)}m).`)
+          }, 0)
+        } catch (error) {
+          console.error('Browser GPS verification error:', error)
+          alert(error.response?.data?.error || 'Failed to verify location via browser GPS.')
+        } finally {
+          setLocationLoading(false)
+        }
+      },
+      (error) => {
+        console.error('Browser geolocation error:', error)
+        if (error.code === error.PERMISSION_DENIED) {
+          alert('Location permission denied. Please allow location access in your browser.')
+        } else if (error.code === error.TIMEOUT) {
+          alert('Browser location request timed out. Please try again.')
+        } else {
+          alert('Unable to retrieve browser location.')
+        }
+        setLocationLoading(false)
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 15000,
+        maximumAge: 0
+      }
+    )
+  }
+
   const handleRenameDevice = async () => {
     if (!newDeviceName.trim()) {
       alert('Device name cannot be empty')
@@ -725,6 +781,15 @@ const DeviceDetail = () => {
               >
                 <span>📍</span>
                 <span>{locationLoading ? 'Refreshing...' : 'Refresh Location'}</span>
+              </button>
+              <button
+                onClick={handleVerifyLocationBrowser}
+                disabled={locationLoading}
+                className={`bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2 shadow-lg font-medium text-sm ${locationLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                title="Verify this device's location using browser GPS (user-approved)"
+              >
+                <span>🛰️</span>
+                <span>Verify Location (Browser GPS)</span>
               </button>
               <button
                 onClick={() => setShowGeofenceModal(true)}

@@ -416,20 +416,6 @@ const Devices = () => {
                 🌐
               </button>
             </div>
-            <button
-              onClick={exportToCSV}
-              className="px-3 sm:px-4 py-2 bg-slate-700/50 hover:bg-slate-600/50 rounded-lg transition-colors text-white text-xs sm:text-sm touch-manipulation whitespace-nowrap"
-            >
-              <span className="hidden sm:inline">EXPORT CSV</span>
-              <span className="sm:hidden">CSV</span>
-            </button>
-            <button
-              onClick={() => setShowNewDeviceModal(true)}
-              className="px-3 sm:px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg transition-colors font-medium text-xs sm:text-sm touch-manipulation whitespace-nowrap"
-            >
-              <span className="hidden sm:inline">+ NEW DEVICE</span>
-              <span className="sm:hidden">+ NEW</span>
-            </button>
           </div>
         </div>
 

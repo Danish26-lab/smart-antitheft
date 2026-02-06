@@ -1097,6 +1097,70 @@ def update_location():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+
+@device_bp.route('/devices/verify_location', methods=['POST'])
+@jwt_required()
+def verify_location():
+    """
+    Verify device location using browser GPS (weather.com-style assist).
+    - Requires JWT (user must be logged in)
+    - Requires device_id and browser-provided lat/lng/accuracy
+    - Updates device.last_lat/lng and logs a 'location_verified' activity
+    """
+    try:
+        data = request.get_json() or {}
+        user_id = get_jwt_identity()
+        user_id = int(user_id) if isinstance(user_id, str) else user_id
+
+        device_id = data.get('device_id')
+        lat = data.get('lat')
+        lng = data.get('lng')
+        accuracy = data.get('accuracy')
+
+        if not device_id or lat is None or lng is None:
+            return jsonify({'error': 'device_id, lat and lng are required'}), 400
+
+        device = Device.query.filter_by(device_id=device_id, user_id=user_id).first()
+        if not device:
+            return jsonify({'error': 'Device not found'}), 404
+
+        # Validate and cast coordinates
+        try:
+            lat_f = float(lat)
+            lng_f = float(lng)
+        except (TypeError, ValueError):
+            return jsonify({'error': 'Invalid coordinate types'}), 400
+
+        if not (-90 <= lat_f <= 90) or not (-180 <= lng_f <= 180):
+            return jsonify({'error': 'Invalid coordinate ranges'}), 400
+
+        # Trust browser GPS: no KL/IP heuristics here
+        device.last_lat = lat_f
+        device.last_lng = lng_f
+        device.last_location_update = datetime.utcnow()
+        device.last_seen = datetime.utcnow()
+
+        # Log verification
+        acc_text = f"±{accuracy:.0f}m" if isinstance(accuracy, (int, float)) else f"±{accuracy}m" if accuracy else "unknown accuracy"
+        log = ActivityLog(
+            device_id=device.id,
+            action='location_verified',
+            description=f'Location verified by user via browser GPS ({acc_text})',
+            lat=lat_f,
+            lng=lng_f
+        )
+        db.session.add(log)
+        db.session.commit()
+
+        return jsonify({
+            'message': 'Location verified via browser GPS',
+            'device': device.to_dict()
+        }), 200
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
 @device_bp.route('/check_config_update/<device_id>', methods=['GET'])
 def check_config_update(device_id):
     """
