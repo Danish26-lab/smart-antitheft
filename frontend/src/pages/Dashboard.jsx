@@ -15,6 +15,13 @@ const Dashboard = () => {
 
   useEffect(() => {
     fetchDashboardData()
+    
+    // Auto-refresh device locations every 30 seconds
+    const interval = setInterval(() => {
+      fetchDashboardData()
+    }, 30000)
+    
+    return () => clearInterval(interval)
   }, [])
 
   const fetchDashboardData = async () => {
@@ -102,9 +109,32 @@ const Dashboard = () => {
       </div>
 
       <div className="bg-slate-800/80 border border-slate-700/50 rounded-xl shadow-lg p-4 sm:p-6 backdrop-blur">
-        <h3 className="text-lg sm:text-xl font-semibold text-white mb-3 sm:mb-4">Device Locations</h3>
-        <div className="w-full rounded-lg overflow-hidden" style={{ minHeight: '300px' }}>
-          <MapView devices={devices} />
+        <div className="flex items-center justify-between mb-3 sm:mb-4">
+          <h3 className="text-lg sm:text-xl font-semibold text-white">Device Locations</h3>
+          {devices.length > 0 && (
+            <div className="text-sm text-slate-400">
+              {devices.filter(d => d.last_lat && d.last_lng).length} of {devices.length} devices with location
+            </div>
+          )}
+        </div>
+        <div className="w-full rounded-lg overflow-hidden bg-slate-900/50" style={{ minHeight: '500px', height: '500px' }}>
+          {devices.length === 0 ? (
+            <div className="flex items-center justify-center h-full text-slate-400">
+              <div className="text-center">
+                <p className="text-lg mb-2">No devices registered</p>
+                <p className="text-sm">Register a device to see its location on the map</p>
+              </div>
+            </div>
+          ) : devices.filter(d => d.last_lat && d.last_lng).length === 0 ? (
+            <div className="flex items-center justify-center h-full text-slate-400">
+              <div className="text-center">
+                <p className="text-lg mb-2">📍 No location data available</p>
+                <p className="text-sm">Ensure device agent is running and location services are enabled</p>
+              </div>
+            </div>
+          ) : (
+            <MapView devices={devices} />
+          )}
         </div>
       </div>
 
