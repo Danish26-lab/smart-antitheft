@@ -1866,34 +1866,36 @@ class DeviceAgent:
                             logging.error(f"🚨 ALARM TRIGGERED: {breach_reason}!")
                             self.status = 'alarm'
                             
-                            # Update location immediately with alarm status to notify backend
+                            # Send alarm to backend IMMEDIATELY using last known location (non-blocking).
+                            # A more accurate location will be sent by the normal status loop.
                             try:
-                                location = self.get_location()
-                                if location:
-                                    # Use correct endpoint format
-                                    payload = {
-                                        "device_id": self.device_id,
-                                        "user": self.user_email,
-                                        "location": location,
-                                        "status": "alarm",
-                                        "wifi_geofence_breach": True,
-                                        "breach_details": {
-                                            "required_ssid": geofence_wifi_ssid,
-                                            "current_ssid": current_ssid or "DISCONNECTED",
-                                            "signal_strength": signal_strength,
-                                            "signal_threshold": signal_threshold,
-                                            "reason": breach_reason
-                                        }
+                                location = self.last_known_location
+                                payload = {
+                                    "device_id": self.device_id,
+                                    "user": self.user_email,
+                                    "status": "alarm",
+                                    "wifi_geofence_breach": True,
+                                    "breach_details": {
+                                        "required_ssid": geofence_wifi_ssid,
+                                        "current_ssid": current_ssid or "DISCONNECTED",
+                                        "signal_strength": signal_strength,
+                                        "signal_threshold": signal_threshold,
+                                        "reason": breach_reason
                                     }
-                                    response = requests.post(
-                                        f"{API_BASE_URL}/update_location",
-                                        json=payload,
-                                        timeout=10
-                                    )
-                                    if response.status_code == 200:
-                                        logging.info("✅ Alarm status sent to backend successfully")
-                                    else:
-                                        logging.error(f"Failed to send alarm status: {response.status_code}")
+                                }
+                                if location:
+                                    payload["location"] = location
+                                
+                                # Short timeout so this never blocks the agent loop for long
+                                response = requests.post(
+                                    f"{API_BASE_URL}/update_location",
+                                    json=payload,
+                                    timeout=3
+                                )
+                                if response.status_code == 200:
+                                    logging.info("✅ Alarm status sent to backend successfully (fast path)")
+                                else:
+                                    logging.error(f"Failed to send alarm status: {response.status_code}")
                             except Exception as e:
                                 logging.error(f"Error sending alarm notification: {e}")
                 
@@ -1979,9 +1981,10 @@ class DeviceAgent:
                                 # Record unlock time
                                 self.last_unlock_time = time.time()
                                 
-                                # Force update server status to 'active' in background (non-blocking)
+                                # Force update server status to 'active' in background (non-blocking).
+                                # Use last known location to avoid blocking on a fresh GPS fix.
                                 try:
-                                    location = self.get_location()
+                                    location = self.last_known_location
                                     payload = {
                                         "device_id": self.device_id,
                                         "user": self.user_email,
@@ -1992,7 +1995,7 @@ class DeviceAgent:
                                         payload["location"] = location
                                     # Use shorter timeout and don't wait - fire and forget
                                     requests.post(f"{API_BASE_URL}/update_location", json=payload, timeout=2)
-                                    logging.debug("📤 Server status update sent (non-blocking)")
+                                    logging.debug("📤 Server status update sent (non-blocking, using last_known_location)")
                                 except Exception as e:
                                     logging.debug(f"Server status update failed (non-critical): {e}")
                             
@@ -2203,10 +2206,10 @@ class DeviceAgent:
                             self.last_unlock_time = time.time()  # Record unlock time
                             self.lock_screen_started = False  # Reset flag since screen was unlocked
                             
-                            # Update server status in background (non-blocking) - don't wait for it
-                            # This prevents blocking the command check loop
+                            # Update server status in background (non-blocking) - don't wait for it.
+                            # Use last known location so we don't block unlock on a fresh GPS call.
                             try:
-                                location = self.get_location()
+                                location = self.last_known_location
                                 payload = {
                                     "device_id": self.device_id,
                                     "user": self.user_email,
@@ -2229,7 +2232,7 @@ class DeviceAgent:
                                     json=payload,
                                     timeout=2  # Very short timeout
                                 )
-                                logging.debug("📤 Unlock status update sent to server (non-blocking)")
+                                logging.debug("📤 Unlock status update sent to server (non-blocking, using last_known_location)")
                             except Exception as e:
                                 logging.debug(f"Server status update failed (non-critical): {e}")
                                 # Don't log as error - local status is already updated, that's what matters
