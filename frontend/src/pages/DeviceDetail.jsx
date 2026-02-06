@@ -41,6 +41,9 @@ const DeviceDetail = () => {
   const [renameLoading, setRenameLoading] = useState(false)
   const [deleteLoading, setDeleteLoading] = useState(false)
   const [locationLoading, setLocationLoading] = useState(false)
+  // Toggleable panels: left = device info + nav, right = actions (slide on/off so map can be full screen)
+  const [leftDrawerOpen, setLeftDrawerOpen] = useState(false)
+  const [rightDrawerOpen, setRightDrawerOpen] = useState(false)
 
   // Initialize geofence settings when device loads
   useEffect(() => {
@@ -549,6 +552,15 @@ const DeviceDetail = () => {
     return '💻'
   }
 
+  // On desktop (md+), start with both panels open for familiar layout; on mobile start closed so map is full
+  useEffect(() => {
+    const isDesktop = window.matchMedia('(min-width: 768px)').matches
+    if (isDesktop) {
+      setLeftDrawerOpen(true)
+      setRightDrawerOpen(true)
+    }
+  }, [])
+
   // Close settings menu when clicking outside (only when device is loaded)
   useEffect(() => {
     if (!device || !showSettingsMenu) return
@@ -615,162 +627,58 @@ const DeviceDetail = () => {
   }
 
   return (
-    <div className="flex flex-col md:flex-row h-screen bg-gray-100 overflow-hidden">
-      {/* Back Button - visible on all screens */}
-      <button
-        onClick={() => navigate('/devices')}
-        className="absolute top-4 left-4 z-50 bg-white hover:bg-gray-100 text-gray-700 px-3 py-2 md:px-4 rounded-lg shadow-md flex items-center space-x-2 text-sm md:text-base"
-      >
-        <span>←</span>
-        <span>Back to Devices</span>
-      </button>
+    <div className="relative h-screen bg-gray-100 overflow-hidden">
+      {/* Backdrop - tap to close drawers (mobile and desktop) */}
+      {(leftDrawerOpen || rightDrawerOpen) && (
+        <button
+          type="button"
+          className="fixed inset-0 bg-black/40 z-30 md:bg-black/20"
+          onClick={() => {
+            setLeftDrawerOpen(false)
+            setRightDrawerOpen(false)
+          }}
+          aria-label="Close panels"
+        />
+      )}
 
-      {/* Left Sidebar - full width on mobile (compact), fixed width on desktop */}
-      <div className="w-full md:w-80 flex-shrink-0 bg-white shadow-lg flex flex-col max-h-[28vh] md:max-h-none overflow-y-auto border-b md:border-b-0 border-gray-200">
-        {/* Device Header */}
-        <div className="p-4 border-b border-gray-200">
-          <div className="flex items-center space-x-2 mb-3">
-            <div className={`w-3 h-3 rounded-full ${getStatusColor()}`}></div>
-            <span className="font-semibold text-gray-800">Device Info</span>
-          </div>
-          <div className="text-sm text-gray-600 mb-2">
-            <div className="flex items-center space-x-2">
-              <span>WiFi: {device.current_wifi_ssid ? 'Connected' : 'Disconnected'}</span>
-              <span className="text-gray-400">•</span>
-              <span>Battery: {device.battery_percentage !== null && device.battery_percentage !== undefined ? `${device.battery_percentage}%` : 'N/A'}</span>
-            </div>
-            <div className="text-xs text-gray-500 mt-1">Agent v1.0.0</div>
-          </div>
-          
-          <div className="flex items-center space-x-2 mt-3">
-            <span className="text-2xl">{getDeviceIcon()}</span>
-            <div>
-              <div className="font-medium text-gray-800">{device.name}</div>
-              <div className="text-xs text-gray-500">{device.device_type || 'Unknown Device'}</div>
-            </div>
-          </div>
-
-          <div className="relative mt-3">
-            <button 
-              data-settings-button
-              onClick={() => setShowSettingsMenu(!showSettingsMenu)}
-              className="w-full px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 rounded flex items-center space-x-2"
+      {/* Main content - full screen: map or tab content */}
+      <div className="absolute inset-0 flex flex-col overflow-hidden">
+        {/* Top bar: Back, Menu (open left drawer), Actions (open right drawer) */}
+        <div className="flex-shrink-0 flex items-center justify-between px-3 py-2 bg-white/95 backdrop-blur border-b border-gray-200 z-20">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => navigate('/devices')}
+              className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-100 text-gray-700 text-sm font-medium"
             >
-              <span>⚙️</span>
-              <span>Settings</span>
+              <span>←</span>
+              <span className="hidden sm:inline">Back to Devices</span>
             </button>
-            
-            {showSettingsMenu && (
-              <div data-settings-menu className="absolute left-0 mt-1 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
-                <button
-                  onClick={() => {
-                    setShowRenameModal(true)
-                    setNewDeviceName(device.name)
-                    setShowSettingsMenu(false)
-                  }}
-                  className="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center space-x-2"
-                >
-                  <span>✏️</span>
-                  <span>Rename Device</span>
-                </button>
-                <button
-                  onClick={() => {
-                    setShowDeleteConfirm(true)
-                    setShowSettingsMenu(false)
-                  }}
-                  className="w-full text-left px-4 py-2 hover:bg-red-50 text-red-600 flex items-center space-x-2"
-                >
-                  <span>🗑️</span>
-                  <span>Delete Device</span>
-                </button>
-              </div>
-            )}
+            <button
+              type="button"
+              onClick={() => setLeftDrawerOpen(true)}
+              className="p-2 rounded-lg hover:bg-gray-100 text-gray-600"
+              aria-label="Open menu"
+              title="Device info &amp; navigation"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
+            </button>
           </div>
-
-          <div className="text-xs text-gray-500 mt-2">
-            Logged in user: {device.user_id || 'admin'}
-          </div>
-        </div>
-
-        {/* Missing/Found Toggle Button */}
-        <div className="p-4 border-b border-gray-200">
           <button
-            onClick={handleMarkMissing}
-            disabled={missingLoading}
-            className={`w-full py-3 px-4 rounded-lg font-medium transition-colors ${
-              device.is_missing
-                ? 'bg-green-500 hover:bg-green-600 text-white'
-                : 'bg-red-500 hover:bg-red-600 text-white'
-            } ${missingLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+            type="button"
+            onClick={() => setRightDrawerOpen(true)}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium"
+            aria-label="Open actions"
+            title="Device control &amp; data security"
           >
-            {missingLoading ? (
-              <>
-                <span>⏳ Processing...</span>
-                <span className="block text-xs mt-1 opacity-90">Please wait</span>
-              </>
-            ) : device.is_missing ? (
-              <>
-                <span>✅ Mark as Found</span>
-                <span className="block text-xs mt-1 opacity-90">Restore device to normal status</span>
-              </>
-            ) : (
-              <>
-                <span>🚨 Set device to Missing</span>
-                <span className="block text-xs mt-1 opacity-90">Activate tracking and alerts</span>
-              </>
-            )}
+            <span>Actions</span>
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l7 7-7 7M5 5l7 7-7 7" /></svg>
           </button>
         </div>
 
-        {/* Navigation */}
-        <div className="flex-1 overflow-y-auto p-4">
-          <nav className="space-y-1">
-            <button
-              onClick={() => setActiveTab('map')}
-              className={`w-full text-left px-3 py-2 rounded flex items-center justify-between hover:bg-gray-50 ${
-                activeTab === 'map' ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-700'
-              }`}
-            >
-              <span>📍 Map and Actions</span>
-              <span>→</span>
-            </button>
-            <button
-              onClick={() => setActiveTab('missing')}
-              className={`w-full text-left px-3 py-2 rounded flex items-center justify-between hover:bg-gray-50 ${
-                activeTab === 'missing' ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-700'
-              }`}
-            >
-              <span>🚨 Missing reports</span>
-              <span>→</span>
-            </button>
-            <button
-              onClick={() => setActiveTab('activity')}
-              className={`w-full text-left px-3 py-2 rounded flex items-center justify-between hover:bg-gray-50 ${
-                activeTab === 'activity' ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-700'
-              }`}
-            >
-              <span>📋 Activity Log</span>
-              <span>→</span>
-            </button>
-            <button
-              onClick={() => setActiveTab('hardware')}
-              className={`w-full text-left px-3 py-2 rounded flex items-center justify-between hover:bg-gray-50 ${
-                activeTab === 'hardware' ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-700'
-              }`}
-            >
-              <span>🔧 Hardware Information</span>
-              <span>→</span>
-            </button>
-          </nav>
-        </div>
-      </div>
-
-      {/* Main Content Area - gets minimum height on mobile so map is always visible */}
-      <div className="flex-1 flex flex-col min-h-[55vh] md:min-h-0 overflow-hidden">
         {activeTab === 'map' && (
-          <div className="flex-1 bg-blue-900 flex items-center justify-center relative overflow-hidden min-h-[320px]">
+          <div className="flex-1 bg-blue-900 flex items-center justify-center relative overflow-hidden min-h-[280px]">
             {/* Always render the map so tiles are visible even before first location */}
-            <div className="w-full h-full min-h-[300px] relative" style={{ zIndex: 1 }}>
+            <div className="w-full h-full min-h-[260px] relative" style={{ zIndex: 1 }}>
               {import.meta.env.DEV && device && console.log('[DeviceDetail] Passing device to MapView:', {
                 device_id: device.device_id,
                 name: device.name,
@@ -1071,6 +979,104 @@ const DeviceDetail = () => {
             )}
           </div>
         )}
+      </div>
+
+      {/* Left drawer - Device info and navigation (slide on/off) */}
+      <div
+        className={`fixed left-0 top-0 bottom-0 w-80 max-w-[85vw] bg-white shadow-2xl z-40 flex flex-col overflow-hidden transition-transform duration-300 ease-out ${
+          leftDrawerOpen ? 'translate-x-0' : '-translate-x-full'
+        }`}
+        aria-hidden={!leftDrawerOpen}
+      >
+        <div className="flex-shrink-0 flex items-center justify-between p-4 border-b border-gray-200">
+          <span className="font-semibold text-gray-800">Device & Nav</span>
+          <button
+            type="button"
+            onClick={() => setLeftDrawerOpen(false)}
+            className="p-2 rounded-lg hover:bg-gray-100 text-gray-600"
+            aria-label="Close menu"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+          </button>
+        </div>
+        <div className="flex-1 overflow-y-auto">
+          <div className="p-4 border-b border-gray-200">
+            <div className="flex items-center space-x-2 mb-3">
+              <div className={`w-3 h-3 rounded-full ${getStatusColor()}`}></div>
+              <span className="font-semibold text-gray-800">Device Info</span>
+            </div>
+            <div className="text-sm text-gray-600 mb-2">
+              <span>WiFi: {device.current_wifi_ssid ? 'Connected' : 'Disconnected'}</span>
+              <span className="text-gray-400"> • </span>
+              <span>Battery: {device.battery_percentage != null ? `${device.battery_percentage}%` : 'N/A'}</span>
+            </div>
+            <div className="text-xs text-gray-500 mt-1">Agent v1.0.0</div>
+            <div className="flex items-center space-x-2 mt-3">
+              <span className="text-2xl">{getDeviceIcon()}</span>
+              <div>
+                <div className="font-medium text-gray-800">{device.name}</div>
+                <div className="text-xs text-gray-500">{device.device_type || 'Unknown Device'}</div>
+              </div>
+            </div>
+            <div className="relative mt-3">
+              <button data-settings-button onClick={() => setShowSettingsMenu(!showSettingsMenu)} className="w-full px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 rounded flex items-center space-x-2">
+                <span>⚙️</span><span>Settings</span>
+              </button>
+              {showSettingsMenu && (
+                <div data-settings-menu className="absolute left-0 mt-1 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
+                  <button onClick={() => { setShowRenameModal(true); setNewDeviceName(device.name); setShowSettingsMenu(false); }} className="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center space-x-2"><span>✏️</span><span>Rename Device</span></button>
+                  <button onClick={() => { setShowDeleteConfirm(true); setShowSettingsMenu(false); }} className="w-full text-left px-4 py-2 hover:bg-red-50 text-red-600 flex items-center space-x-2"><span>🗑️</span><span>Delete Device</span></button>
+                </div>
+              )}
+            </div>
+            <div className="text-xs text-gray-500 mt-2">Logged in user: {device.user_id || 'admin'}</div>
+          </div>
+          <div className="p-4 border-b border-gray-200">
+            <button onClick={handleMarkMissing} disabled={missingLoading} className={`w-full py-3 px-4 rounded-lg font-medium transition-colors ${device.is_missing ? 'bg-green-500 hover:bg-green-600 text-white' : 'bg-red-500 hover:bg-red-600 text-white'} ${missingLoading ? 'opacity-50 cursor-not-allowed' : ''}`}>
+              {missingLoading ? <><span>⏳ Processing...</span></> : device.is_missing ? <><span>✅ Mark as Found</span></> : <><span>🚨 Set device to Missing</span><span className="block text-xs mt-1 opacity-90">Activate tracking and alerts</span></>}
+            </button>
+          </div>
+          <nav className="p-4 space-y-1">
+            <button onClick={() => { setActiveTab('map'); setLeftDrawerOpen(false); }} className={`w-full text-left px-3 py-2 rounded flex items-center justify-between hover:bg-gray-50 ${activeTab === 'map' ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-700'}`}><span>📍 Map and Actions</span><span>→</span></button>
+            <button onClick={() => { setActiveTab('missing'); setLeftDrawerOpen(false); }} className={`w-full text-left px-3 py-2 rounded flex items-center justify-between hover:bg-gray-50 ${activeTab === 'missing' ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-700'}`}><span>🚨 Missing reports</span><span>→</span></button>
+            <button onClick={() => { setActiveTab('activity'); setLeftDrawerOpen(false); }} className={`w-full text-left px-3 py-2 rounded flex items-center justify-between hover:bg-gray-50 ${activeTab === 'activity' ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-700'}`}><span>📋 Activity Log</span><span>→</span></button>
+            <button onClick={() => { setActiveTab('hardware'); setLeftDrawerOpen(false); }} className={`w-full text-left px-3 py-2 rounded flex items-center justify-between hover:bg-gray-50 ${activeTab === 'hardware' ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-700'}`}><span>🔧 Hardware Information</span><span>→</span></button>
+          </nav>
+        </div>
+      </div>
+
+      {/* Right drawer - Actions (slide on/off) */}
+      <div
+        className={`fixed right-0 top-0 bottom-0 w-72 max-w-[85vw] bg-blue-800 text-white shadow-2xl z-40 flex flex-col overflow-hidden transition-transform duration-300 ease-out ${
+          rightDrawerOpen ? 'translate-x-0' : 'translate-x-full'
+        }`}
+        aria-hidden={!rightDrawerOpen}
+      >
+        <div className="flex-shrink-0 flex items-center justify-between p-4 border-b border-blue-700">
+          <span className="font-semibold">Actions</span>
+          <button type="button" onClick={() => setRightDrawerOpen(false)} className="p-2 rounded-lg hover:bg-blue-700 text-white" aria-label="Close actions">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+          </button>
+        </div>
+        <div className="flex-1 overflow-y-auto p-4">
+          <h3 className="font-semibold mb-4 text-blue-200">Device Control</h3>
+          <div className="space-y-3">
+            {device?.status === 'alarm' && (
+              <button onClick={() => handleAction('clear_alarm')} disabled={actionLoading} className={`w-full bg-green-600 hover:bg-green-500 text-white py-3 px-4 rounded-lg flex items-center space-x-3 transition-colors ${actionLoading ? 'opacity-50 cursor-not-allowed' : ''}`}><span className="text-xl">✅</span><span>{actionLoading ? 'Processing...' : 'Clear Alarm'}</span></button>
+            )}
+            <button onClick={() => handleAction('alarm')} disabled={actionLoading || (device && device.device_type === 'os_device')} className={`w-full bg-blue-700 hover:bg-blue-600 text-white py-3 px-4 rounded-lg flex items-center space-x-3 transition-colors ${actionLoading || (device && device.device_type === 'os_device') ? 'opacity-50 cursor-not-allowed' : ''}`} title={device && device.device_type === 'os_device' ? 'Install agent for full control.' : 'Trigger remote alarm'}><span className="text-xl">🔊</span><span>{actionLoading ? 'Processing...' : 'Remote alarm'}</span></button>
+            <button onClick={() => handleAction('message')} disabled={actionLoading || (device && device.device_type === 'os_device')} className={`w-full bg-blue-700 hover:bg-blue-600 text-white py-3 px-4 rounded-lg flex items-center space-x-3 transition-colors ${actionLoading || (device && device.device_type === 'os_device') ? 'opacity-50 cursor-not-allowed' : ''}`}><span className="text-xl">⚠️</span><span>{actionLoading ? 'Processing...' : 'Alert message'}</span></button>
+            <button onClick={() => setShowLockModal(true)} disabled={actionLoading || (device && device.device_type === 'os_device')} className={`w-full bg-blue-700 hover:bg-blue-600 text-white py-3 px-4 rounded-lg flex items-center space-x-3 transition-colors ${actionLoading || (device && device.device_type === 'os_device') ? 'opacity-50 cursor-not-allowed' : ''}`}><span className="text-xl">🔒</span><span>{actionLoading ? 'Processing...' : 'Screen lock'}</span></button>
+          </div>
+          <div className="mt-6 pt-6 border-t border-blue-700">
+            <h3 className="font-semibold mb-4 text-blue-200">Data Security</h3>
+            <button onClick={() => { if (device && device.device_type === 'os_device') { alert('Install the device agent for full control.'); return; } setShowWipeModal(true); setSelectedPaths([]); setWipeStatus(null); setRightDrawerOpen(false); }} disabled={wipeInProgress || (device && device.device_type === 'os_device')} className={`w-full bg-gray-700 hover:bg-gray-600 text-white py-3 px-4 rounded-lg flex items-center justify-between transition-colors ${wipeInProgress || (device && device.device_type === 'os_device') ? 'opacity-50 cursor-not-allowed' : ''}`}>
+              <div className="flex items-center space-x-3"><span className="text-xl">🗑️</span><span>Custom Wipe</span></div>
+              {wipeInProgress && <span className="text-xs bg-yellow-500 px-2 py-1 rounded">In Progress</span>}
+            </button>
+            <div className="text-xs text-blue-300 mt-2">Browse D:\ drive and select files/folders to delete</div>
+          </div>
+        </div>
       </div>
 
       {/* Geofence Configuration Modal */}
@@ -1506,97 +1512,6 @@ const DeviceDetail = () => {
           </div>
         </div>
       )}
-
-      {/* Right Actions Sidebar - full width on mobile (compact strip), fixed width on desktop */}
-      <div className="w-full md:w-64 flex-shrink-0 bg-blue-800 text-white flex flex-col max-h-[24vh] md:max-h-none overflow-y-auto border-t md:border-t-0 border-blue-700">
-        <div className="p-4 border-b border-blue-700 flex items-center space-x-2">
-          <span>→</span>
-          <span className="font-semibold">Actions</span>
-        </div>
-
-        <div className="flex-1 p-4">
-          <h3 className="font-semibold mb-4 text-blue-200">Device Control</h3>
-          
-          <div className="space-y-3">
-            {device?.status === 'alarm' && (
-              <button
-                onClick={() => handleAction('clear_alarm')}
-                disabled={actionLoading}
-                className={`w-full bg-green-600 hover:bg-green-500 text-white py-3 px-4 rounded-lg flex items-center space-x-3 transition-colors ${actionLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
-              >
-                <span className="text-xl">✅</span>
-                <span>{actionLoading ? 'Processing...' : 'Clear Alarm'}</span>
-              </button>
-            )}
-            
-            <button
-              onClick={() => handleAction('alarm')}
-              disabled={actionLoading || (device && device.device_type === 'os_device')}
-              className={`w-full bg-blue-700 hover:bg-blue-600 text-white py-3 px-4 rounded-lg flex items-center space-x-3 transition-colors ${actionLoading || (device && device.device_type === 'os_device') ? 'opacity-50 cursor-not-allowed' : ''}`}
-              title={device && device.device_type === 'os_device' ? 'Not available for OS-based devices. Install agent for full control.' : 'Trigger remote alarm'}
-            >
-              <span className="text-xl">🔊</span>
-              <span>{actionLoading ? 'Processing...' : 'Remote alarm'}</span>
-            </button>
-
-            <button
-              onClick={() => handleAction('message')}
-              disabled={actionLoading || (device && device.device_type === 'os_device')}
-              className={`w-full bg-blue-700 hover:bg-blue-600 text-white py-3 px-4 rounded-lg flex items-center space-x-3 transition-colors ${actionLoading || (device && device.device_type === 'os_device') ? 'opacity-50 cursor-not-allowed' : ''}`}
-              title={device && device.device_type === 'os_device' ? 'Not available for OS-based devices. Install agent for full control.' : 'Send alert message'}
-            >
-              <span className="text-xl">⚠️</span>
-              <span>{actionLoading ? 'Processing...' : 'Alert message'}</span>
-            </button>
-
-            <button
-              onClick={() => setShowLockModal(true)}
-              disabled={actionLoading || (device && device.device_type === 'os_device')}
-              className={`w-full bg-blue-700 hover:bg-blue-600 text-white py-3 px-4 rounded-lg flex items-center space-x-3 transition-colors ${actionLoading || (device && device.device_type === 'os_device') ? 'opacity-50 cursor-not-allowed' : ''}`}
-              title={device && device.device_type === 'os_device' ? 'Not available for OS-based devices. Install agent for full control.' : 'Lock device screen'}
-            >
-              <span className="text-xl">🔒</span>
-              <span>{actionLoading ? 'Processing...' : 'Screen lock'}</span>
-            </button>
-          </div>
-
-          {/* Data Security Section */}
-          <div className="mt-6 pt-6 border-t border-blue-700">
-            <h3 className="font-semibold mb-4 text-blue-200">Data Security</h3>
-            
-            <div className="space-y-3">
-              <button
-                onClick={() => {
-                  if (device && device.device_type === 'os_device') {
-                    alert('Custom wipe is not supported for OS-based devices. Install the device agent for full control.')
-                    return
-                  }
-                  setShowWipeModal(true)
-                  setSelectedPaths([])
-                  setWipeStatus(null)
-                }}
-                disabled={wipeInProgress || (device && device.device_type === 'os_device')}
-                className={`w-full bg-gray-700 hover:bg-gray-600 text-white py-3 px-4 rounded-lg flex items-center justify-between transition-colors ${
-                  wipeInProgress || (device && device.device_type === 'os_device') ? 'opacity-50 cursor-not-allowed' : ''
-                }`}
-                title={device && device.device_type === 'os_device' ? 'Not available for OS-based devices. Install agent for full control.' : 'Browse and select files/folders from D:\\ to delete remotely'}
-              >
-                <div className="flex items-center space-x-3">
-                  <span className="text-xl">🗑️</span>
-                  <span>Custom Wipe</span>
-                </div>
-                {wipeInProgress && (
-                  <span className="text-xs bg-yellow-500 px-2 py-1 rounded">In Progress</span>
-                )}
-              </button>
-              
-              <div className="text-xs text-blue-300 mt-2">
-                Browse D:\\ drive and select files/folders to delete
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
 
       {/* Wipe Data Modal */}
       {showWipeModal && (
