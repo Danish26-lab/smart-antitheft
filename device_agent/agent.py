@@ -603,31 +603,19 @@ class DeviceAgent:
                                 raw_lng = float(parts[1])
                                 
                                 # CRITICAL: Validate and fix swapped coordinates
-                                # Latitude must be between -90 and 90
-                                # Longitude must be between -180 and 180
-                                # If lat is outside -90 to 90 range, it's likely swapped
+                                # Latitude must be between -90 and 90, Longitude -180 to 180
                                 if abs(raw_lat) > 90:
-                                    # Coordinates are swapped - fix them
                                     logging.warning(f"⚠️ Detected swapped coordinates from Windows API: lat={raw_lat}, lng={raw_lng}")
-                                    logging.warning(f"   Swapping to correct order: lat={raw_lng}, lng={raw_lat}")
-                                    location = {
-                                        "lat": raw_lng,  # Swap: use lng as lat
-                                        "lng": raw_lat   # Swap: use lat as lng
-                                    }
+                                    location = {"lat": raw_lng, "lng": raw_lat}
                                 elif abs(raw_lng) > 180:
-                                    # Longitude is invalid - coordinates are swapped
                                     logging.warning(f"⚠️ Detected swapped coordinates (invalid lng): lat={raw_lat}, lng={raw_lng}")
-                                    logging.warning(f"   Swapping to correct order: lat={raw_lng}, lng={raw_lat}")
-                                    location = {
-                                        "lat": raw_lng,  # Swap: use lng as lat
-                                        "lng": raw_lat   # Swap: use lat as lng
-                                    }
+                                    location = {"lat": raw_lng, "lng": raw_lat}
+                                elif (99 <= abs(raw_lat) <= 180 and abs(raw_lng) <= 90):
+                                    # In-range swap: e.g. (101.68, 3.14) - Windows sometimes returns (lng, lat)
+                                    logging.warning(f"⚠️ Detected in-range swapped coordinates from Windows: lat={raw_lat}, lng={raw_lng}")
+                                    location = {"lat": raw_lng, "lng": raw_lat}
                                 else:
-                                    # Coordinates are valid - use as-is
-                                    location = {
-                                        "lat": raw_lat,
-                                        "lng": raw_lng
-                                    }
+                                    location = {"lat": raw_lat, "lng": raw_lng}
                                 
                                 # Final validation: ensure coordinates are in valid ranges
                                 if not (-90 <= location["lat"] <= 90) or not (-180 <= location["lng"] <= 180):
@@ -678,6 +666,18 @@ class DeviceAgent:
                             break  # Don't retry if not supported
                 except subprocess.TimeoutExpired:
                     self.gps_failed_count += 1
+                    # After first quick timeout, try Google WiFi geolocation so user gets a location sooner
+                    if strategy == "quick" and self.google_maps_api_key:
+                        logging.info("⏱️ GPS taking long - trying Google WiFi geolocation for faster result...")
+                        google_location = self._get_google_geolocation()
+                        if google_location:
+                            # Validate before using (same as below)
+                            kl_area_lat, kl_area_lng = 3.14, 101.69
+                            dist_kl = self._calculate_distance(kl_area_lat, kl_area_lng, google_location['lat'], google_location['lng'])
+                            if dist_kl >= 20000 or self.allow_kl_approximate:
+                                logging.info(f"✅ Using Google WiFi location (faster than waiting for GPS): {google_location}")
+                                self.last_known_location = google_location
+                                return google_location
                     if strategy == "extended" or (strategy == "long" and len(timeout_strategies) == 3):
                         logging.warning(f"❌ GPS timed out after {max_wait}s")
                         logging.warning("   Location Services is enabled, but GPS/WiFi location isn't being returned")

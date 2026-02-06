@@ -780,9 +780,14 @@ def update_location():
                     )
                     db.session.add(clear_log)
         
+        # Accept location from nested object or top-level (so different clients work)
         location = data.get('location', {})
-        new_lat = location.get('lat')
-        new_lng = location.get('lng')
+        new_lat = location.get('lat') if isinstance(location, dict) else None
+        new_lng = location.get('lng') if isinstance(location, dict) else None
+        if new_lat is None:
+            new_lat = data.get('lat')
+        if new_lng is None:
+            new_lng = data.get('lng')
         
         # CRITICAL: Reject KL area locations (wrong ISP location)
         # KL coordinates: ~3.14, 101.69
@@ -927,16 +932,22 @@ def update_location():
                     # Latitude is invalid - coordinates are swapped
                     logging.warning(f"⚠️ Detected swapped coordinates in backend: lat={raw_lat}, lng={raw_lng}")
                     logging.warning(f"   Swapping to correct order: lat={raw_lng}, lng={raw_lat}")
-                    new_lat = raw_lng  # Swap: use lng as lat
-                    new_lng = raw_lat  # Swap: use lat as lng
+                    new_lat = raw_lng
+                    new_lng = raw_lat
                 elif abs(raw_lng) > 180:
                     # Longitude is invalid - coordinates are swapped
                     logging.warning(f"⚠️ Detected swapped coordinates (invalid lng) in backend: lat={raw_lat}, lng={raw_lng}")
                     logging.warning(f"   Swapping to correct order: lat={raw_lng}, lng={raw_lat}")
-                    new_lat = raw_lng  # Swap: use lng as lat
-                    new_lng = raw_lat  # Swap: use lat as lng
+                    new_lat = raw_lng
+                    new_lng = raw_lat
+                elif (99 <= abs(raw_lat) <= 180 and abs(raw_lng) <= 90) or (abs(raw_lng) <= 25 and 90 < abs(raw_lat) <= 180):
+                    # In-range swap: e.g. (101.68, 3.14) where 101 is lng and 3 is lat - common Windows/API bug
+                    # If lat looks like lng (99-180) and lng looks like lat (-90 to 90), swap
+                    logging.warning(f"⚠️ Detected in-range swapped coordinates: lat={raw_lat}, lng={raw_lng}")
+                    logging.warning(f"   Swapping to correct order: lat={raw_lng}, lng={raw_lat}")
+                    new_lat = raw_lng
+                    new_lng = raw_lat
                 else:
-                    # Coordinates are in valid ranges - use as-is
                     new_lat = raw_lat
                     new_lng = raw_lng
                 

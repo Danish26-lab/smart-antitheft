@@ -748,6 +748,13 @@ const DeviceDetail = () => {
               </button>
             </div>
 
+            {/* Tip for accurate tracking */}
+            <div className="absolute bottom-2 left-2 right-2 sm:left-auto sm:right-4 sm:bottom-4 sm:w-72 text-left z-10">
+              <p className="text-xs text-white/90 bg-black/50 rounded px-2 py-1.5">
+                💡 For <strong>exact</strong> location: enable Location Services on the device (Settings → Privacy → Location) and allow desktop apps.
+              </p>
+            </div>
+
           </div>
         )}
 
