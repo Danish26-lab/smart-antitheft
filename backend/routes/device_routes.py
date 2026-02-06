@@ -746,6 +746,21 @@ def update_location():
                 if owner:
                     device.user_id = owner.id
             db.session.commit()
+
+        # If we already have a stored location and this update is IP-based / approximate,
+        # ignore it so that IP geolocation can NEVER overwrite a better GPS/browser fix.
+        if device.last_lat is not None and device.last_lng is not None:
+            if location_method == 'ip' or data.get('location_approximate'):
+                logging.warning(
+                    f"⚠️ Ignoring IP/approximate location update for {device.device_id}: "
+                    f"lat={data.get('lat') or data.get('location', {}).get('lat')}, "
+                    f"lng={data.get('lng') or data.get('location', {}).get('lng')} "
+                    f"(we already have a stored location)."
+                )
+                return jsonify({
+                    'message': 'Approximate IP location ignored; existing coordinates preserved',
+                    'device': device.to_dict()
+                }), 200
         
         # CRITICAL: Handle status updates FIRST, before location validation
         # This ensures status updates (like unlock: locked -> active) always work,
