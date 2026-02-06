@@ -98,6 +98,7 @@ def create_device():
     """Create a new device manually (for connecting physical devices later)"""
     try:
         data = request.get_json()
+        location_method = data.get('location_method')
         user_id = get_jwt_identity()
         user_id = int(user_id) if isinstance(user_id, str) else user_id
         
@@ -965,6 +966,8 @@ def update_location():
         
         # Log the coordinates being stored for debugging
         logging.info(f"Storing location for device {device.device_id}: lat={new_lat}, lng={new_lng}")
+        if location_method:
+            logging.info(f"Location method reported by agent: {location_method}")
         logging.info(f"Previous location was: lat={device.last_lat}, lng={device.last_lng}")
         device.last_seen = datetime.utcnow()
         
@@ -1064,11 +1067,12 @@ def update_location():
         # But if alarm was triggered by geofence, it will override the status
         # This is intentional - geofence alarms take priority
         
-        # Log location update
+        # Log location update (include method if provided for easier debugging)
+        method_suffix = f" [method={location_method}]" if location_method else ""
         log = ActivityLog(
             device_id=device.id,
             action='location_update',
-            description=f'Location updated: {new_lat}, {new_lng}' + (' - ALARM TRIGGERED!' if alarm_triggered else ''),
+            description=f'Location updated{method_suffix}: {new_lat}, {new_lng}' + (' - ALARM TRIGGERED!' if alarm_triggered else ''),
             lat=new_lat,
             lng=new_lng
         )

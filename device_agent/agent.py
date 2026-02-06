@@ -472,6 +472,12 @@ class DeviceAgent:
         3. NEVER use IP geolocation if it's in KL area (wrong ISP location)
         4. NEVER cache IP geolocation - only cache real GPS locations
         5. Return None if we can't get real location (don't report wrong location)
+
+        Also updates self.last_location_method with a human-readable source:
+        - "gps"          -> Windows Location / GPS or fresh GPS fix
+        - "wifi"         -> Google Geolocation API (WiFi-based)
+        - "ip"           -> IP-based geolocation (approximate)
+        - "gps_cached"   -> Cached GPS/WiFi location reused
         """
         # ============================================
         # METHOD 1: Windows Location API (GPS/WiFi) - ALWAYS TRY THIS FIRST
@@ -646,6 +652,8 @@ class DeviceAgent:
                                         # Store as last known good location
                                         self.last_known_location = location
                                         self.gps_failed_count = 0  # Reset failure count on success
+                                        # Mark method as GPS/WiFi from Windows Location API
+                                        self.last_location_method = "gps"
                                         return location
                                     else:
                                         if strategy != "long":  # Only log warning on last attempt
@@ -654,6 +662,7 @@ class DeviceAgent:
                                 else:
                                     logging.info(f"Got location from Windows Location API: {location}")
                                     self.last_known_location = location
+                                    self.last_location_method = "gps"
                                     return location
                         elif output == "NOT_SUPPORTED":
                             logging.warning("❌ Windows Location API not supported")
@@ -739,11 +748,14 @@ class DeviceAgent:
                     
                     logging.info(f"✅✅ Got location from Google Geolocation API: {google_location}")
                     self.last_known_location = google_location
+                    # Mark method as WiFi-based Google Geolocation
+                    self.last_location_method = "wifi"
                     return google_location
                 else:
                     # KL area - accept if allow_kl_approximate (device may be in KL)
                     if self.allow_kl_approximate:
                         logging.warning(f"⚠️ Google Geolocation shows KL area - accepting (approximate): {google_location}")
+                        self.last_location_method = "wifi"
                         return google_location
                     logging.warning(f"⚠️ Google Geolocation shows KL area, rejecting (allow_kl_approximate_location=false)...")
         
@@ -846,9 +858,11 @@ class DeviceAgent:
                         )
                         if distance > 10000:  # IP location differs by >10km
                             logging.warning(f"⚠️ IP location differs by {distance/1000:.1f}km from GPS. Using cached GPS.")
+                            self.last_location_method = "gps_cached"
                             return self.last_known_location
                         else:
                             logging.info(f"⚠️ IP location close to GPS. Using cached GPS (more accurate).")
+                            self.last_location_method = "gps_cached"
                             return self.last_known_location
                     # else: last known is also in KL, might be wrong - use fresh IP location
                 
@@ -859,6 +873,7 @@ class DeviceAgent:
                         # User may actually be in KL (or testing). Accept approximate location so device shows on map.
                         logging.warning(f"⚠️ Using IP geolocation in KL area (approximate): {ip_location}")
                         logging.warning(f"   Device may be in Kuala Lumpur. For better accuracy, enable Windows Location Services.")
+                        self.last_location_method = "ip"
                         return ip_location
                     # Strict mode: reject KL IP geolocation (for users in Melaka where KL is wrong)
                     logging.error(f"❌ REJECTING KL IP geolocation (allow_kl_approximate_location=false in config.json)")
@@ -873,6 +888,7 @@ class DeviceAgent:
                     logging.warning(f"   Accuracy may be off by 10-100km")
                     logging.warning(f"   💡 Enable Windows Location Services for accurate tracking")
                     # Use IP location as fallback only if NOT in KL area
+                    self.last_location_method = "ip"
                     return ip_location
             
             # No IP location available either
@@ -897,9 +913,11 @@ class DeviceAgent:
                             return gps_location
                     # GPS failed - use cached location anyway (better than nothing)
                     logging.warning(f"⚠️ GPS failed. Using cached location: {self.last_known_location}")
+                    self.last_location_method = "gps_cached"
                     return self.last_known_location
                 else:
                     logging.info(f"✅ Using last known GPS location: {self.last_known_location}")
+                    self.last_location_method = "gps_cached"
                     return self.last_known_location
             
             # No location available at all - this shouldn't happen if IP geolocation worked
@@ -911,6 +929,7 @@ class DeviceAgent:
             # Return last known GPS location if available
             if self.last_known_location:
                 logging.info(f"Using last known GPS location after error: {self.last_known_location}")
+                self.last_location_method = "gps_cached"
                 return self.last_known_location
             return None
     
@@ -1456,7 +1475,10 @@ class DeviceAgent:
             
             # Get location - this method now handles all validation and GPS priority
             location = self.get_location()
-            is_approximate_location = False  # Track if location is approximate (IP geolocation fallback)
+            # Track which method produced this location (gps / wifi / ip / gps_cached)
+            location_method = getattr(self, "last_location_method", None)
+            # Track if location is approximate (IP geolocation fallback)
+            is_approximate_location = (location_method == "ip")
             
             # If get_location() returns None, it means GPS failed AND IP geolocation was rejected (KL area)
             # CRITICAL: Always report SOME location, even if approximate, so device shows on map
@@ -1480,9 +1502,13 @@ class DeviceAgent:
                             location = gps_location
                             self.last_known_location = gps_location
                             self.gps_failed_count = 0
+                            self.last_location_method = "gps"
+                            location_method = "gps"
                         else:
                             logging.warning(f"⚠️ GPS also shows KL area - might be correct if device is actually in KL")
                             location = gps_location  # Use it anyway (GPS is more accurate than IP)
+                            self.last_location_method = "gps"
+                            location_method = "gps"
                     else:
                         # GPS failed completely - use IP geolocation as fallback (better than no location)
                         # This ensures device shows on map, even if approximate
@@ -1495,6 +1521,8 @@ class DeviceAgent:
                         if ip_location:
                             location = ip_location
                             is_approximate_location = True  # Mark as approximate
+                            self.last_location_method = "ip"
+                            location_method = "ip"
                             logging.warning(f"⚠️ Using approximate IP geolocation: {location}")
                             logging.warning("   This location may be inaccurate - enable Windows Location Services for GPS!")
                         else:
@@ -1502,6 +1530,8 @@ class DeviceAgent:
                             if self.last_known_location:
                                 logging.warning(f"⚠️ Using last known location (may be outdated): {self.last_known_location}")
                                 location = self.last_known_location
+                                self.last_location_method = "gps_cached"
+                                location_method = "gps_cached"
                             else:
                                 # No location at all - report status without location
                                 logging.error("❌ No location available - reporting status without location")
@@ -1549,6 +1579,8 @@ class DeviceAgent:
                                     is_approximate_location = False
                                     self.last_known_location = final_gps
                                     self.gps_failed_count = 0
+                                    self.last_location_method = "gps"
+                                    location_method = "gps"
                                 else:
                                     return False
                             else:
@@ -1569,6 +1601,8 @@ class DeviceAgent:
                         logging.warning(f"⚠️ Current location shows KL area, but last GPS was elsewhere.")
                         logging.warning(f"   Using last known GPS location: {self.last_known_location}")
                         location = self.last_known_location
+                        self.last_location_method = "gps_cached"
+                        location_method = "gps_cached"
                     # else: both are in KL, might be correct or both wrong - use current location
                 # else: No cached GPS - if it's GPS (not IP), use it (might be correct if device is actually in KL)
             
@@ -1594,6 +1628,10 @@ class DeviceAgent:
                 if cached_in_seremban:
                     logging.info(f"📍 Cached location is in Seremban, but device is now at: {location}")
                     logging.info(f"   Using fresh GPS location (device moved {distance/1000:.1f}km)")
+                    # Fresh GPS/WiFi location from Windows/Google
+                    if self.last_location_method is None or self.last_location_method == "gps_cached":
+                        self.last_location_method = "gps"
+                    location_method = self.last_location_method
                     payload = {
                         "device_id": self.device_id,
                         "user": self.user_email,
@@ -1605,6 +1643,9 @@ class DeviceAgent:
                 elif distance < 50:  # Device hasn't moved significantly (reduced from 100m for real-time)
                     logging.debug(f"Device hasn't moved ({distance:.1f}m), using cached location")
                     # Still report but mark location as unchanged
+                    # Use cached GPS location method
+                    self.last_location_method = "gps_cached"
+                    location_method = "gps_cached"
                     payload = {
                         "device_id": self.device_id,
                         "user": self.user_email,
@@ -1623,6 +1664,7 @@ class DeviceAgent:
                     }
             else:
                 # First time getting location - always report it
+                # Use whatever method get_location() determined (gps / wifi / ip)
                 payload = {
                     "device_id": self.device_id,
                     "user": self.user_email,
@@ -1633,6 +1675,15 @@ class DeviceAgent:
             # Add approximate location flag if using IP geolocation fallback
             if is_approximate_location:
                 payload["location_approximate"] = True
+
+            # Include human-readable location method for debugging and UI (gps / wifi / ip / gps_cached)
+            if location_method:
+                payload["location_method"] = location_method
+                logging.info(
+                    f"[LOCATION] method={location_method} "
+                    f"lat={location['lat']:.6f} lng={location['lng']:.6f} "
+                    f"approximate={is_approximate_location}"
+                )
             
             # Add current WiFi SSID to all payloads
             current_wifi_ssid = get_wifi_ssid()
