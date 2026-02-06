@@ -98,7 +98,6 @@ def create_device():
     """Create a new device manually (for connecting physical devices later)"""
     try:
         data = request.get_json()
-        location_method = data.get('location_method')
         user_id = get_jwt_identity()
         user_id = int(user_id) if isinstance(user_id, str) else user_id
         
@@ -717,6 +716,7 @@ def update_location():
     """Update device location - can be called by device agent without auth"""
     try:
         data = request.get_json()
+        location_method = data.get('location_method')
         
         if not data or not data.get('device_id'):
             return jsonify({'error': 'device_id is required'}), 400
