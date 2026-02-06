@@ -341,6 +341,19 @@ const MapView = ({ devices, center = { lat: 3.139, lng: 101.686 }, zoom = 10, ge
     }
   }, [updateMapContent])
 
+  // On mobile/resize: Leaflet needs invalidateSize() when container size changes (e.g. layout became visible)
+  useEffect(() => {
+    if (!mapRef.current || !mapInstanceRef.current) return
+    const map = mapInstanceRef.current
+    const resizeObserver = new ResizeObserver(() => {
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.invalidateSize()
+      }
+    })
+    resizeObserver.observe(mapRef.current)
+    return () => resizeObserver.disconnect()
+  }, [])
+
   // Cleanup on unmount
   useEffect(() => {
     return () => {

@@ -615,18 +615,18 @@ const DeviceDetail = () => {
   }
 
   return (
-    <div className="flex h-screen bg-gray-100">
-      {/* Back Button */}
+    <div className="flex flex-col md:flex-row h-screen bg-gray-100 overflow-hidden">
+      {/* Back Button - visible on all screens */}
       <button
         onClick={() => navigate('/devices')}
-        className="absolute top-4 left-4 z-50 bg-white hover:bg-gray-100 text-gray-700 px-4 py-2 rounded-lg shadow-md flex items-center space-x-2"
+        className="absolute top-4 left-4 z-50 bg-white hover:bg-gray-100 text-gray-700 px-3 py-2 md:px-4 rounded-lg shadow-md flex items-center space-x-2 text-sm md:text-base"
       >
         <span>←</span>
         <span>Back to Devices</span>
       </button>
 
-      {/* Left Sidebar */}
-      <div className="w-80 bg-white shadow-lg flex flex-col">
+      {/* Left Sidebar - full width on mobile (compact), fixed width on desktop */}
+      <div className="w-full md:w-80 flex-shrink-0 bg-white shadow-lg flex flex-col max-h-[28vh] md:max-h-none overflow-y-auto border-b md:border-b-0 border-gray-200">
         {/* Device Header */}
         <div className="p-4 border-b border-gray-200">
           <div className="flex items-center space-x-2 mb-3">
@@ -765,12 +765,12 @@ const DeviceDetail = () => {
         </div>
       </div>
 
-      {/* Main Content Area */}
-      <div className="flex-1 flex flex-col">
+      {/* Main Content Area - gets minimum height on mobile so map is always visible */}
+      <div className="flex-1 flex flex-col min-h-[55vh] md:min-h-0 overflow-hidden">
         {activeTab === 'map' && (
-          <div className="flex-1 bg-blue-900 flex items-center justify-center relative overflow-hidden">
+          <div className="flex-1 bg-blue-900 flex items-center justify-center relative overflow-hidden min-h-[320px]">
             {/* Always render the map so tiles are visible even before first location */}
-            <div className="w-full h-full relative" style={{ zIndex: 1 }}>
+            <div className="w-full h-full min-h-[300px] relative" style={{ zIndex: 1 }}>
               {import.meta.env.DEV && device && console.log('[DeviceDetail] Passing device to MapView:', {
                 device_id: device.device_id,
                 name: device.name,
@@ -1507,8 +1507,8 @@ const DeviceDetail = () => {
         </div>
       )}
 
-      {/* Right Actions Sidebar */}
-      <div className="w-64 bg-blue-800 text-white flex flex-col">
+      {/* Right Actions Sidebar - full width on mobile (compact strip), fixed width on desktop */}
+      <div className="w-full md:w-64 flex-shrink-0 bg-blue-800 text-white flex flex-col max-h-[24vh] md:max-h-none overflow-y-auto border-t md:border-t-0 border-blue-700">
         <div className="p-4 border-b border-blue-700 flex items-center space-x-2">
           <span>→</span>
           <span className="font-semibold">Actions</span>
