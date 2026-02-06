@@ -803,7 +803,9 @@ def update_location():
                 logging.info(f"✅ Accepting location update: New location is NOT in KL area (real GPS): {new_lat}, {new_lng}")
                 # Continue to update - don't reject
             # If location is in KL area (within 20km) and device doesn't have a previous GPS location,
-            # ACCEPT it for the first location (so device can show on map), but warn user
+            # ACCEPT it for the first location (so device can show on map), but warn user.
+            # If we already have a non-KL location, and the NEW location is KL + comes from IP,
+            # REJECT it so a good GPS/browser fix (e.g. Merlimau) is not overwritten by ISP IP (KL).
             elif distance_from_kl < 20000:
                 if not device.last_lat or not device.last_lng:
                     # No previous location - ACCEPT first location even if KL area (so device shows on map)
@@ -815,12 +817,20 @@ def update_location():
                     # Device has previous location - check if it's a significant jump
                     prev_dist_from_kl = calculate_distance_meters(kl_area_lat, kl_area_lng, device.last_lat, device.last_lng)
                     if prev_dist_from_kl > 20000:  # Previous location was NOT in KL
-                        # Device was elsewhere, now showing KL - might be wrong, but accept it anyway
-                        # (device might have actually moved, or IP geolocation changed)
-                        # For anti-theft tracking, it's better to show approximate location than nothing
-                        logging.warning(f"⚠️ Location jumped to KL area from {device.last_lat}, {device.last_lng} (may be IP geolocation)")
-                        logging.warning(f"   Accepting update anyway - approximate location is better than no location for tracking")
-                        # Continue to update - don't reject (allows tracking even with approximate location)
+                        # New KL position from IP trying to overwrite a good non-KL fix (e.g. Merlimau).
+                        # If location comes from IP/approximate, reject it and keep the better GPS/browser fix.
+                        if location_method == 'ip' or data.get('location_approximate'):
+                            logging.warning(
+                                f"⚠️ Rejecting KL IP location {new_lat}, {new_lng} "
+                                f"because last known location is non-KL ({device.last_lat}, {device.last_lng})."
+                            )
+                            return jsonify({
+                                'message': 'Location update ignored: IP KL location would overwrite accurate non-KL fix',
+                                'device': device.to_dict()
+                            }), 200
+                        # Otherwise (non-IP), accept – device might really be in KL now.
+                        logging.warning(f"⚠️ Non-IP location jumped to KL area from {device.last_lat}, {device.last_lng}")
+                        # Continue to update - don't reject
                     # else: both locations are in KL, might be correct (device actually in KL) - accept it
         
         # Validate location accuracy - reject if location changed too dramatically
