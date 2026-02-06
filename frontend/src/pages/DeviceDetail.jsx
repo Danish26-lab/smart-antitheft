@@ -676,9 +676,9 @@ const DeviceDetail = () => {
         </div>
 
         {activeTab === 'map' && (
-          <div className="flex-1 bg-blue-900 flex items-center justify-center relative overflow-hidden min-h-[280px]">
-            {/* Always render the map so tiles are visible even before first location */}
-            <div className="w-full h-full min-h-[260px] relative" style={{ zIndex: 1 }}>
+          <div className="flex-1 bg-blue-900 flex items-center justify-center relative overflow-hidden min-h-[280px] p-2 sm:p-3">
+            {/* Map slightly inset so drawer triggers (Menu / Actions) stay easy to tap */}
+            <div className="w-full h-full min-h-[260px] relative rounded-lg overflow-hidden" style={{ zIndex: 1 }}>
               {import.meta.env.DEV && device && console.log('[DeviceDetail] Passing device to MapView:', {
                 device_id: device.device_id,
                 name: device.name,
@@ -709,13 +709,18 @@ const DeviceDetail = () => {
               />
             </div>
 
-            {/* Overlay controls / status - Top right corner, always visible */}
-            <div className="absolute top-4 right-4 flex flex-col items-end space-y-2" style={{ zIndex: 10000, pointerEvents: 'auto' }}>
+            {/* Refresh / Geofence: behind drawers when left or right panel is open so they don't block */}
+            <div
+              className="absolute top-4 right-4 flex flex-col items-end space-y-2"
+              style={{
+                zIndex: (leftDrawerOpen || rightDrawerOpen) ? 5 : 10000,
+                pointerEvents: 'auto'
+              }}
+            >
               <button
                 onClick={handleUpdateLocation}
                 disabled={locationLoading}
                 className={`bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2 shadow-lg font-medium text-sm ${locationLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
-                style={{ zIndex: 10001 }}
                 title="Refresh to the latest location reported by the device agent"
               >
                 <span>📍</span>
@@ -728,7 +733,6 @@ const DeviceDetail = () => {
                     ? 'bg-red-500 hover:bg-red-600 text-white'
                     : 'bg-blue-500 hover:bg-blue-600 text-white'
                 }`}
-                style={{ zIndex: 10001 }}
                 title={
                   device.geofence_enabled
                     ? 'Geofence enabled - Click to configure'
