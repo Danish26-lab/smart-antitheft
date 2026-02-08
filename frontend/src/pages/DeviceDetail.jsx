@@ -98,7 +98,7 @@ const DeviceDetail = () => {
 
     init()
 
-    // Live location: refresh every 2 seconds so map follows device in near real-time
+    // Live location: refresh every 3 seconds so map follows device in real-time
     const refreshInterval = setInterval(() => {
       if (isMounted) {
         fetchDeviceDetails() // Refresh device location and status
@@ -106,7 +106,7 @@ const DeviceDetail = () => {
           fetchWipeStatus() // Poll wipe status if operation is in progress
         }
       }
-    }, 2000) // 2 seconds for live-updating map
+    }, 3000) // 3 seconds - live-updating map
 
     return () => {
       isMounted = false

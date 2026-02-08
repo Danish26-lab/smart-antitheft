@@ -3020,13 +3020,12 @@ class DeviceAgent:
             with open(CONFIG_FILE, 'r') as f:
                 config = json.load(f)
                 # Location: default 3s for live map; cap at 30s
-                raw_report = config.get('report_interval', 3)
-                report_interval = min(max(float(raw_report) if raw_report else 3, 3.0), 30.0)
+                report_interval = 3.0  # Always 3 seconds for live location updates
                 # Command checks: cap at 5s so alarm/clear_alarm/lock respond immediately (no 60s delay)
                 raw_check = config.get('check_commands_interval', 2)
                 check_interval = min(float(raw_check) if raw_check else 2, 5.0)
         except Exception:
-            report_interval = 3
+            report_interval = 3.0
             check_interval = 2.0
         
         last_report = 0
