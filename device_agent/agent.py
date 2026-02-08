@@ -223,7 +223,7 @@ class DeviceAgent:
         config = {
             "device_id": self.device_id,
             "user_email": "admin@antitheft.com",
-            "report_interval": 15,  # 15 seconds for more accurate location updates
+            "report_interval": 5,  # 5 seconds for fast geofence testing and accurate location updates
             "check_commands_interval": 2,  # 2 seconds so alarm/lock/clear respond immediately
             "google_maps_api_key": None
         }
@@ -3020,14 +3020,14 @@ class DeviceAgent:
         try:
             with open(CONFIG_FILE, 'r') as f:
                 config = json.load(f)
-                # Location: cap at 30s so map stays accurate
-                raw_report = config.get('report_interval', 15)
-                report_interval = min(float(raw_report) if raw_report else 15, 30.0)
+                # Location: default 5s for geofence testing; cap at 30s so map stays accurate
+                raw_report = config.get('report_interval', 5)
+                report_interval = min(max(float(raw_report) if raw_report else 5, 5.0), 30.0)
                 # Command checks: cap at 5s so alarm/clear_alarm/lock respond immediately (no 60s delay)
                 raw_check = config.get('check_commands_interval', 2)
                 check_interval = min(float(raw_check) if raw_check else 2, 5.0)
         except Exception:
-            report_interval = 15
+            report_interval = 5
             check_interval = 2.0
         
         last_report = 0

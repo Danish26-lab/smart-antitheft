@@ -357,7 +357,7 @@ class IOSDeviceAgent:
             logging.error(f"Error reporting status: {e}")
             return False
     
-    def run(self, report_interval=300, check_commands_interval=60):
+    def run(self, report_interval=5, check_commands_interval=10):
         """Main loop - continuously report status and check for commands"""
         if not self.device_id:
             logging.error("Device not registered. Please run ios_register_device.py first")
@@ -375,7 +375,7 @@ class IOSDeviceAgent:
             while True:
                 current_time = time.time()
                 
-                # Report location periodically
+                # Report location periodically (e.g. every 5s for geofence testing)
                 if current_time - last_report >= report_interval:
                     self.report_status()
                     last_report = current_time
@@ -385,7 +385,7 @@ class IOSDeviceAgent:
                     self.check_for_commands()
                     last_check = current_time
                 
-                time.sleep(10)  # Sleep 10 seconds between checks
+                time.sleep(1)  # Sleep 1 second so we can report every 5s when report_interval=5
                 
         except KeyboardInterrupt:
             logging.info("Agent stopped by user")
