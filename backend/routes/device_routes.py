@@ -749,8 +749,89 @@ def update_location():
 
         # If we already have a stored location and this update is IP-based / approximate,
         # ignore it so that IP geolocation can NEVER overwrite a better GPS/browser fix.
+        # BUT still run geofence check with the incoming coordinates so we don't miss a breach
+        # when the only update we get from the device is IP/approximate (e.g. after moving away).
         if device.last_lat is not None and device.last_lng is not None:
             if location_method == 'ip' or data.get('location_approximate'):
+                # Parse incoming location for geofence check (same as below)
+                loc = data.get('location', {})
+                inc_lat = loc.get('lat') if isinstance(loc, dict) else None
+                inc_lng = loc.get('lng') if isinstance(loc, dict) else None
+                if inc_lat is None:
+                    inc_lat = data.get('lat')
+                if inc_lng is None:
+                    inc_lng = data.get('lng')
+                # Run geofence check even when ignoring this update (so alarm triggers when you leave)
+                if (device.geofence_enabled and device.geofence_center_lat and device.geofence_center_lng
+                        and inc_lat is not None and inc_lng is not None):
+                    radius_km = device.geofence_radius_m / 1000.0
+                    geofence_config = {
+                        'center_lat': device.geofence_center_lat,
+                        'center_lng': device.geofence_center_lng,
+                        'radius_km': radius_km
+                    }
+                    is_inside, distance_km = check_geofence(inc_lat, inc_lng, geofence_config)
+                    distance_m = distance_km * 1000 if distance_km else None
+                    if device.was_inside_geofence and not is_inside:
+                        logging.warning(
+                            f"[GEOFENCE] BREACH (ignored update path) device={device.device_id} "
+                            f"incoming lat={inc_lat} lng={inc_lng} distance_m={distance_m:.1f} radius_m={device.geofence_radius_m}"
+                        )
+                        device.status = 'alarm'
+                        breach_log = ActivityLog(
+                            device_id=device.id,
+                            action='geofence_breach',
+                            description=f'Device left geofence (from IP/approximate update)! Distance: {distance_m:.1f}m outside radius ({device.geofence_radius_m}m)',
+                            lat=inc_lat,
+                            lng=inc_lng
+                        )
+                        db.session.add(breach_log)
+                        alarm_log = ActivityLog(
+                            device_id=device.id,
+                            action='alarm',
+                            description=f'Auto-triggered alarm: Device breached geofence (moved {distance_m:.1f}m outside {device.geofence_radius_m}m radius)',
+                            lat=inc_lat,
+                            lng=inc_lng
+                        )
+                        db.session.add(alarm_log)
+                        try:
+                            from utils.email_alert import send_geofence_alert
+                            user = User.query.get(device.user_id)
+                            if user and user.email:
+                                send_geofence_alert(
+                                    user.email,
+                                    device.name,
+                                    {
+                                        'lat': inc_lat,
+                                        'lng': inc_lng,
+                                        'breach_type': 'GPS Geofence',
+                                        'radius_m': device.geofence_radius_m,
+                                        'distance_m': distance_m,
+                                        'reason': 'Device left GPS geofence area (location from IP/approximate)'
+                                    },
+                                    device_id=device.device_id
+                                )
+                                logging.info(f"Notification sent to {user.email} for GPS geofence breach (ignored location update)")
+                            if user:
+                                subs = PushSubscription.query.filter_by(user_id=user.id).all()
+                                subscription_payloads = [
+                                    {"endpoint": s.endpoint, "keys": {"p256dh": s.p256dh, "auth": s.auth}}
+                                    for s in subs
+                                ]
+                                if subscription_payloads:
+                                    dashboard_url = os.getenv("FRONTEND_BASE_URL", "http://localhost:3000").rstrip("/") + f"/device/{device.device_id}"
+                                    send_push_notifications(
+                                        subscription_payloads,
+                                        title="🚨 Anti-Theft Alert (GPS Geofence)",
+                                        body=f'{device.name} left the GPS geofence area. Tap to open dashboard.',
+                                        url=dashboard_url,
+                                    )
+                        except Exception as e:
+                            logging.error(f"Error sending GPS geofence notification (ignored update path): {e}")
+                        device.was_inside_geofence = False
+                    else:
+                        device.was_inside_geofence = is_inside
+                    db.session.commit()
                 logging.warning(
                     f"⚠️ Ignoring IP/approximate location update for {device.device_id}: "
                     f"lat={data.get('lat') or data.get('location', {}).get('lat')}, "
@@ -900,9 +981,17 @@ def update_location():
                 
                 is_inside, distance_km = check_geofence(new_lat, new_lng, geofence_config)
                 distance_m = distance_km * 1000 if distance_km else None
-                
+                logging.info(
+                    f"[GEOFENCE] device={device.device_id} was_inside={device.was_inside_geofence} "
+                    f"is_inside={is_inside} distance_m={distance_m:.1f} radius_m={device.geofence_radius_m} "
+                    f"lat={new_lat} lng={new_lng}"
+                )
                 # Check if device left the geofence (was inside, now outside)
                 if device.was_inside_geofence and not is_inside:
+                    logging.warning(
+                        f"[GEOFENCE] BREACH device={device.device_id} lat={new_lat} lng={new_lng} "
+                        f"distance_m={distance_m:.1f} radius_m={device.geofence_radius_m} - triggering alarm and email"
+                    )
                     geofence_breach = True
                     # Trigger alarm automatically
                     device.status = 'alarm'
