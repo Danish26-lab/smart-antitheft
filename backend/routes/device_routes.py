@@ -748,12 +748,13 @@ def update_location():
             db.session.commit()
 
         # If we already have a stored location and this update is IP-based / approximate,
-        # ignore it so that IP geolocation can NEVER overwrite a better GPS/browser fix.
-        # BUT still run geofence check with the incoming coordinates so we don't miss a breach
-        # when the only update we get from the device is IP/approximate (e.g. after moving away).
+        # we normally ignore it so IP doesn't overwrite a better GPS/browser fix.
+        # EXCEPTION: If the device has moved significantly (>500m), accept the update so the map
+        # reflects the new place (e.g. library -> mosque). Otherwise the location would stay stuck.
+        # When not accepting, we still run geofence check with incoming coords so we don't miss a breach.
         if device.last_lat is not None and device.last_lng is not None:
             if location_method == 'ip' or data.get('location_approximate'):
-                # Parse incoming location for geofence check (same as below)
+                # Parse incoming location (same as below)
                 loc = data.get('location', {})
                 inc_lat = loc.get('lat') if isinstance(loc, dict) else None
                 inc_lng = loc.get('lng') if isinstance(loc, dict) else None
@@ -761,9 +762,22 @@ def update_location():
                     inc_lat = data.get('lat')
                 if inc_lng is None:
                     inc_lng = data.get('lng')
-                # Run geofence check even when ignoring this update (so alarm triggers when you leave)
-                if (device.geofence_enabled and device.geofence_center_lat and device.geofence_center_lng
-                        and inc_lat is not None and inc_lng is not None):
+                distance_moved = None
+                if inc_lat is not None and inc_lng is not None:
+                    distance_moved = calculate_distance_meters(
+                        device.last_lat, device.last_lng, inc_lat, inc_lng
+                    )
+                # If user clearly moved (e.g. to another building), accept so map updates
+                if distance_moved is not None and distance_moved > 500:
+                    logging.info(
+                        f"Accepting IP/approximate location: device moved {distance_moved:.0f}m - "
+                        f"updating stored location so map reflects new place (e.g. library -> mosque)"
+                    )
+                    # Fall through: do not return; location will be updated below
+                else:
+                    # Same place or small move: run geofence check but don't update stored location
+                    if (device.geofence_enabled and device.geofence_center_lat and device.geofence_center_lng
+                            and inc_lat is not None and inc_lng is not None):
                     radius_km = device.geofence_radius_m / 1000.0
                     geofence_config = {
                         'center_lat': device.geofence_center_lat,
