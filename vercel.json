@@ -1,23 +1,18 @@
 {
   "version": 2,
-  "builds": [
+  "builds": [{"src": "api/index.py", "use": "@vercel/python", "config": {"maxLambdaSize": "50mb"}}],
+  "routes": [{"src": "/(.*)", "dest": "/api/index.py"}],
+  "headers": [
     {
-      "src": "api/index.py",
-      "use": "@vercel/python",
-      "config": {
-        "maxLambdaSize": "50mb"
-      }
+      "source": "/(.*)",
+      "headers": [
+        { "key": "Access-Control-Allow-Origin", "value": "https://antitheft-frontend-2.vercel.app" },
+        { "key": "Access-Control-Allow-Methods", "value": "GET, POST, PUT, DELETE, OPTIONS, PATCH" },
+        { "key": "Access-Control-Allow-Headers", "value": "Content-Type, Authorization, X-Requested-With, Accept" },
+        { "key": "Access-Control-Allow-Credentials", "value": "true" },
+        { "key": "Access-Control-Max-Age", "value": "3600" }
+      ]
     }
   ],
-  "routes": [
-    {
-      "src": "/(.*)",
-      "dest": "/api/index.py"
-    }
-  ],
-  "env": {
-    "FLASK_APP": "backend/app.py",
-    "PYTHONPATH": "backend",
-    "VERCEL": "1"
-  }
+  "env": {"FLASK_APP": "backend/app.py", "PYTHONPATH": "backend", "VERCEL": "1"}
 }

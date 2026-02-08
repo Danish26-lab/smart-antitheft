@@ -38,7 +38,14 @@ const Login = ({ onLogin }) => {
         navigate('/dashboard')
       }
     } catch (err) {
-      setError(err.response?.data?.error || 'Login failed. Please try again.')
+      // Show specific message so you know if it's wrong password vs server unreachable
+      const data = err.response?.data
+      const status = err.response?.status
+      let message = data?.error || data?.message
+      if (status === 401) message = message || 'Invalid email or password.'
+      if (status === 503) message = message || 'Server temporarily unavailable. Try again later.'
+      if (!err.response) message = 'Cannot reach server. Check your connection and that the backend is running.'
+      setError(message || 'Login failed. Please try again.')
     } finally {
       setLoading(false)
     }
