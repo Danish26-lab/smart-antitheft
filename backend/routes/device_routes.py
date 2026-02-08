@@ -724,8 +724,13 @@ def update_location():
         device = Device.query.filter_by(device_id=data['device_id']).first()
         if not device:
             # Auto-register device to avoid manual "Add Device" step.
-            # Attach to the first available user (typically the account that owns the system).
-            owner = User.query.filter_by(email='admin@antitheft.com').first() or User.query.first()
+            # Prefer the user whose email the agent sends (so "Danish" sees his device), else admin/first user.
+            user_email = data.get('user') or data.get('user_email')
+            owner = None
+            if user_email:
+                owner = User.query.filter_by(email=user_email).first()
+            if not owner:
+                owner = User.query.filter_by(email='admin@antitheft.com').first() or User.query.first()
             if not owner:
                 return jsonify({'error': 'Device not found and no owner user exists'}), 404
 
@@ -737,15 +742,16 @@ def update_location():
                 status=data.get('status', 'active')
             )
             db.session.add(device)
-        elif device.user_id is None:
-            # Device exists but is UNOWNED – try to link it to a specific user
-            # using the optional "user" or "user_email" field in the payload.
+        else:
+            # Device exists: link to the user the agent reports (so the right account sees "My device").
+            # Handles both unowned (user_id is None) and wrong-owner (e.g. was assigned to admin).
             user_email = data.get('user') or data.get('user_email')
             if user_email:
                 owner = User.query.filter_by(email=user_email).first()
-                if owner:
+                if owner and device.user_id != owner.id:
                     device.user_id = owner.id
-            db.session.commit()
+                    logging.info(f"Device {device.device_id} linked to user {user_email} (id={owner.id})")
+                    db.session.commit()
 
         # If we already have a stored location and this update is IP-based / approximate,
         # we normally ignore it so IP doesn't overwrite a better GPS/browser fix.
