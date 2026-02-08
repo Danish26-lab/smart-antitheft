@@ -98,7 +98,7 @@ const DeviceDetail = () => {
 
     init()
 
-    // Set up real-time location refresh every 5 seconds for faster status updates
+    // Live location: refresh every 2 seconds so map follows device in near real-time
     const refreshInterval = setInterval(() => {
       if (isMounted) {
         fetchDeviceDetails() // Refresh device location and status
@@ -106,7 +106,7 @@ const DeviceDetail = () => {
           fetchWipeStatus() // Poll wipe status if operation is in progress
         }
       }
-    }, 5000) // 5 seconds for faster status updates (especially after unlock)
+    }, 2000) // 2 seconds for live-updating map
 
     return () => {
       isMounted = false
@@ -733,6 +733,11 @@ const DeviceDetail = () => {
 
         {activeTab === 'map' && (
           <div className="flex-1 bg-blue-900 flex items-center justify-center relative overflow-hidden min-h-[280px] p-2 sm:p-3">
+            {/* Live location indicator: map refreshes every 2s, device reports every 3s */}
+            <div className="absolute top-4 left-4 z-10 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-green-500/90 text-white text-xs font-medium shadow-md" title="Location updates every 2–3 seconds">
+              <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" aria-hidden />
+              Live
+            </div>
             {/* Map slightly inset so drawer triggers (Menu / Actions) stay easy to tap */}
             <div className="w-full h-full min-h-[260px] relative rounded-lg overflow-hidden" style={{ zIndex: 1 }}>
               {import.meta.env.DEV && device && console.log('[DeviceDetail] Passing device to MapView:', {

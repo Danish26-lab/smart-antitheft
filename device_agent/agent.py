@@ -223,7 +223,7 @@ class DeviceAgent:
         config = {
             "device_id": self.device_id,
             "user_email": "admin@antitheft.com",
-            "report_interval": 5,  # 5 seconds for fast geofence testing and accurate location updates
+            "report_interval": 3,  # 3 seconds for live location updates (map follows device in real-time)
             "check_commands_interval": 2,  # 2 seconds so alarm/lock/clear respond immediately
             "google_maps_api_key": None
         }
@@ -1638,9 +1638,8 @@ class DeviceAgent:
                         "location": location,  # Always use fresh location when cached is Seremban
                         "status": self.status
                     }
-                # For real-time tracking, report location even if device hasn't moved much
-                # But use shorter interval for "unchanged" locations
-                elif distance < 50:  # Device hasn't moved significantly (reduced from 100m for real-time)
+                # For real-time tracking: only use cached when barely moved so map follows user
+                elif distance < 25:  # Device barely moved - use cached to avoid jitter
                     logging.debug(f"Device hasn't moved ({distance:.1f}m), using cached location")
                     # Still report but mark location as unchanged
                     # Use cached GPS location method
@@ -3020,14 +3019,14 @@ class DeviceAgent:
         try:
             with open(CONFIG_FILE, 'r') as f:
                 config = json.load(f)
-                # Location: default 5s for geofence testing; cap at 30s so map stays accurate
-                raw_report = config.get('report_interval', 5)
-                report_interval = min(max(float(raw_report) if raw_report else 5, 5.0), 30.0)
+                # Location: default 3s for live map; cap at 30s
+                raw_report = config.get('report_interval', 3)
+                report_interval = min(max(float(raw_report) if raw_report else 3, 3.0), 30.0)
                 # Command checks: cap at 5s so alarm/clear_alarm/lock respond immediately (no 60s delay)
                 raw_check = config.get('check_commands_interval', 2)
                 check_interval = min(float(raw_check) if raw_check else 2, 5.0)
         except Exception:
-            report_interval = 5
+            report_interval = 3
             check_interval = 2.0
         
         last_report = 0

@@ -755,8 +755,8 @@ def update_location():
 
         # If we already have a stored location and this update is IP-based / approximate,
         # we normally ignore it so IP doesn't overwrite a better GPS/browser fix.
-        # EXCEPTION: If the device has moved significantly (>500m), accept the update so the map
-        # reflects the new place (e.g. library -> mosque). Otherwise the location would stay stuck.
+        # EXCEPTION: If the device has moved (>100m), accept the update so the map follows the user
+        # as they move (e.g. walking/driving). Otherwise the location would stay stuck.
         # When not accepting, we still run geofence check with incoming coords so we don't miss a breach.
         if device.last_lat is not None and device.last_lng is not None:
             if location_method == 'ip' or data.get('location_approximate'):
@@ -773,11 +773,11 @@ def update_location():
                     distance_moved = calculate_distance_meters(
                         device.last_lat, device.last_lng, inc_lat, inc_lng
                     )
-                # If user clearly moved (e.g. to another building), accept so map updates
-                if distance_moved is not None and distance_moved > 500:
+                # If user moved (e.g. walking/driving), accept so map follows device
+                if distance_moved is not None and distance_moved > 100:
                     logging.info(
                         f"Accepting IP/approximate location: device moved {distance_moved:.0f}m - "
-                        f"updating stored location so map reflects new place (e.g. library -> mosque)"
+                        f"updating stored location so map follows user"
                     )
                     # Fall through: do not return; location will be updated below
                 else:
