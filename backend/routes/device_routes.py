@@ -1393,7 +1393,7 @@ def get_device_status(device_id):
         if not device:
             return jsonify({'error': 'Device not found'}), 404
         
-        # If JWT provided, verify ownership
+        # If JWT provided, verify ownership and run geofence check (so breach triggers when dashboard polls)
         user_id = get_jwt_identity()
         if user_id:
             user_id = int(user_id) if isinstance(user_id, str) else user_id
@@ -1403,6 +1403,66 @@ def get_device_status(device_id):
                     'error': 'Unauthorized',
                     'message': 'This device belongs to another user account'
                 }), 403
+            # Geofence check on poll: if device is outside and was inside, trigger breach (fixes "nothing happen" when device already out)
+            if (device.geofence_enabled and device.geofence_type == 'gps' and device.geofence_center_lat and device.geofence_center_lng
+                    and device.last_lat and device.last_lng):
+                radius_km = device.geofence_radius_m / 1000.0
+                geofence_config = {
+                    'center_lat': device.geofence_center_lat,
+                    'center_lng': device.geofence_center_lng,
+                    'radius_km': radius_km
+                }
+                is_inside, distance_km = check_geofence(device.last_lat, device.last_lng, geofence_config)
+                distance_m = distance_km * 1000 if distance_km else None
+                if device.was_inside_geofence and not is_inside and device.status != 'alarm':
+                    device.status = 'alarm'
+                    device.was_inside_geofence = False
+                    breach_log = ActivityLog(
+                        device_id=device.id,
+                        action='geofence_breach',
+                        description=f'Device left geofence! Distance: {distance_m:.1f}m outside radius ({device.geofence_radius_m}m)',
+                        lat=device.last_lat,
+                        lng=device.last_lng
+                    )
+                    db.session.add(breach_log)
+                    alarm_log = ActivityLog(
+                        device_id=device.id,
+                        action='alarm',
+                        description=f'Auto-triggered alarm: Device breached geofence (moved {distance_m:.1f}m outside {device.geofence_radius_m}m radius)',
+                        lat=device.last_lat,
+                        lng=device.last_lng
+                    )
+                    db.session.add(alarm_log)
+                    try:
+                        from utils.email_alert import send_geofence_alert
+                        user = User.query.get(device.user_id)
+                        if user and user.email:
+                            send_geofence_alert(
+                                user.email,
+                                device.name,
+                                {
+                                    'lat': device.last_lat,
+                                    'lng': device.last_lng,
+                                    'breach_type': 'GPS Geofence',
+                                    'radius_m': device.geofence_radius_m,
+                                    'distance_m': distance_m,
+                                    'reason': 'Device left GPS geofence area'
+                                },
+                                device_id=device.device_id
+                            )
+                            subs = PushSubscription.query.filter_by(user_id=user.id).all()
+                            subscription_payloads = [{"endpoint": s.endpoint, "keys": {"p256dh": s.p256dh, "auth": s.auth}} for s in subs]
+                            if subscription_payloads:
+                                dashboard_url = os.getenv("FRONTEND_BASE_URL", "http://localhost:3000").rstrip("/") + f"/device/{device.device_id}"
+                                send_push_notifications(
+                                    subscription_payloads,
+                                    title="🚨 Anti-Theft Alert (GPS Geofence)",
+                                    body=f'{device.name} left the GPS geofence area. Tap to open dashboard.',
+                                    url=dashboard_url,
+                                )
+                    except Exception as e:
+                        logging.error(f"Error sending geofence breach notification: {e}")
+                    db.session.commit()
             return jsonify(device.to_dict()), 200
         
         # For agent access without JWT, return limited info
@@ -1660,7 +1720,7 @@ def set_geofence():
         if 'enabled' in data:
             device.geofence_enabled = bool(data['enabled'])
         
-        # Initialize was_inside_geofence based on geofence type
+        # Initialize was_inside_geofence and trigger breach if device is already outside
         if device.geofence_enabled:
             if device.geofence_type == 'gps' and device.last_lat and device.last_lng and device.geofence_center_lat and device.geofence_center_lng:
                 radius_km = device.geofence_radius_m / 1000.0
@@ -1669,11 +1729,59 @@ def set_geofence():
                     'center_lng': device.geofence_center_lng,
                     'radius_km': radius_km
                 }
-                is_inside, _ = check_geofence(device.last_lat, device.last_lng, geofence_config)
+                is_inside, distance_km = check_geofence(device.last_lat, device.last_lng, geofence_config)
                 device.was_inside_geofence = is_inside
+                distance_m = distance_km * 1000 if distance_km else None
+                # If device is already outside when enabling geofence, trigger breach immediately
+                if not is_inside and distance_m is not None:
+                    device.status = 'alarm'
+                    breach_log = ActivityLog(
+                        device_id=device.id,
+                        action='geofence_breach',
+                        description=f'Device already outside geofence when enabled! Distance: {distance_m:.1f}m outside radius ({device.geofence_radius_m}m)',
+                        lat=device.last_lat,
+                        lng=device.last_lng
+                    )
+                    db.session.add(breach_log)
+                    alarm_log = ActivityLog(
+                        device_id=device.id,
+                        action='alarm',
+                        description=f'Auto-triggered: Device is outside geofence (distance {distance_m:.1f}m outside {device.geofence_radius_m}m radius)',
+                        lat=device.last_lat,
+                        lng=device.last_lng
+                    )
+                    db.session.add(alarm_log)
+                    try:
+                        from utils.email_alert import send_geofence_alert
+                        user = User.query.get(device.user_id)
+                        if user and user.email:
+                            send_geofence_alert(
+                                user.email,
+                                device.name,
+                                {
+                                    'lat': device.last_lat,
+                                    'lng': device.last_lng,
+                                    'breach_type': 'GPS Geofence',
+                                    'radius_m': device.geofence_radius_m,
+                                    'distance_m': distance_m,
+                                    'reason': 'Device is outside GPS geofence area'
+                                },
+                                device_id=device.device_id
+                            )
+                            subs = PushSubscription.query.filter_by(user_id=user.id).all()
+                            subscription_payloads = [{"endpoint": s.endpoint, "keys": {"p256dh": s.p256dh, "auth": s.auth}} for s in subs]
+                            if subscription_payloads:
+                                dashboard_url = os.getenv("FRONTEND_BASE_URL", "http://localhost:3000").rstrip("/") + f"/device/{device.device_id}"
+                                send_push_notifications(
+                                    subscription_payloads,
+                                    title="🚨 Anti-Theft Alert (GPS Geofence)",
+                                    body=f'{device.name} is outside the geofence area. Tap to open dashboard.',
+                                    url=dashboard_url,
+                                )
+                    except Exception as e:
+                        logging.error(f"Error sending geofence breach notification: {e}")
             elif device.geofence_type == 'wifi' and device.geofence_wifi_ssid:
                 # For WiFi, assume device is "inside" if it's connected to the required network
-                # The agent will check this and update the status
                 device.was_inside_geofence = True
         
         # Log geofence update
